@@ -20,12 +20,12 @@ public interface ICompanyFileService {
 	
 	public CompanyFile save(CompanyFile companyFile);
 	
-	public Resource loadFile(String fileName) throws MalformedURLException;
+	public Resource loadFile(String fileName, String path) throws MalformedURLException;
 	
-	public String copyFile(MultipartFile file) throws IOException;
+	public String copyFile(MultipartFile file, String path) throws IOException;
 	
-	public boolean deleteFile(String fileName);
+	public boolean deleteFile(String fileName, String path);
 	
-	public Path getPath(String fileName);
+	public Path getPath(String fileName, String pathFile);
 	
 }

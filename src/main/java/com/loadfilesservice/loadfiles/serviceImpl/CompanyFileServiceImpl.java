@@ -32,8 +32,6 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 	
 	private final ICompanyFileDao companyFileDao;
 	
-	private final static String PATH_UPLOADS = "uploadfiles";
-	
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<CompanyFile> findById(Long id) {
@@ -59,8 +57,8 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 	}
 
 	@Override
-	public Resource loadFile(String fileName) throws MalformedURLException {
-		Path pathFile = getPath(fileName);
+	public Resource loadFile(String fileName, String path) throws MalformedURLException {
+		Path pathFile = getPath(fileName, path);
 		
 		Resource resource = new UrlResource(pathFile.toUri());
 		
@@ -72,9 +70,9 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 	}
 
 	@Override
-	public String copyFile(MultipartFile file) throws IOException {
+	public String copyFile(MultipartFile file, String path) throws IOException {
 		String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename().replace(" ", "");
-		Path pathFile = getPath(fileName);
+		Path pathFile = getPath(fileName, path);
 		
 		Files.copy(file.getInputStream(), pathFile);
 		
@@ -82,9 +80,9 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 	}
 
 	@Override
-	public boolean deleteFile(String fileName) {
+	public boolean deleteFile(String fileName, String path) {
 		if (fileName != null && fileName.length() > 0) {
-			Path pathOldFile = getPath(fileName);
+			Path pathOldFile = getPath(fileName, path);
 			File oldFile = pathOldFile.toFile();
 			
 			if (oldFile.exists() && oldFile.canRead()) {
@@ -98,8 +96,8 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 	}
 
 	@Override
-	public Path getPath(String fileName) {
-		return Paths.get(PATH_UPLOADS).resolve(fileName).toAbsolutePath();
+	public Path getPath(String fileName, String pathFile) {
+		return Paths.get(pathFile).resolve(fileName).toAbsolutePath();
 	}
 
 }

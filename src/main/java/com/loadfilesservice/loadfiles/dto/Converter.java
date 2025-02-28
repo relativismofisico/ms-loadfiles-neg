@@ -4,6 +4,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
 
 import com.loadfilesservice.loadfiles.entity.CompanyFile;
+import com.loadfilesservice.loadfiles.entity.FileToSign;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,10 @@ public class Converter {
 	
 	public CompanyFile companyFileDTOtoCompanyFile(CompanyFileDTORequest companyFileDTO) {
 		return modelMapper.map(companyFileDTO, CompanyFile.class);
+	}
+	
+	public FileToSignDTOResponse FileToSignToDTO(FileToSign fileToSign) {
+		return modelMapper.map(fileToSign, FileToSignDTOResponse.class);
 	}
 	
 }

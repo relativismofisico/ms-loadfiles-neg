@@ -31,6 +31,7 @@ import com.loadfilesservice.loadfiles.entity.CompanyFile;
 import com.loadfilesservice.loadfiles.entity.CompanyFileType;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.service.ICompanyFileService;
+import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -77,7 +78,7 @@ public class LoadFilesRestController {
 				}
 				
 				try {
-					companyFileService.deleteFile(oldCompanyFile.getFileName());
+					companyFileService.deleteFile(oldCompanyFile.getFileName(), ConstantVariables.PATH_UPLOADS);
 				} catch (Exception e) {
 					log.error("[LoadFilesRestController][uploadFile][loadfiles]" + " Error al intentar borrar el archivo: " + oldCompanyFile.getFileName());
 					throw new InternalServerErrorException("Error al intentar borrar el archivo: " + oldCompanyFile.getFileName());
@@ -85,7 +86,7 @@ public class LoadFilesRestController {
 			}
 			
 			try {
-				newFileName = companyFileService.copyFile(newfile);
+				newFileName = companyFileService.copyFile(newfile, ConstantVariables.PATH_UPLOADS);
 			} catch (Exception e) {
 				log.error("[LoadFilesRestController][uploadFile][loadfiles]" + " Error al intentar guardar el archivo: " + newfile.getOriginalFilename());
 				throw new InternalServerErrorException("Error al intentar guardar el archivo: " + newfile.getOriginalFilename());
@@ -95,7 +96,7 @@ public class LoadFilesRestController {
 			
 			newCompanyFile.setFileName(newFileName);
 			newCompanyFile.setOriginalFileName(newfile.getOriginalFilename());
-			newCompanyFile.setFilePath(companyFileService.getPath(newFileName).toString());
+			newCompanyFile.setFilePath(companyFileService.getPath(newFileName, ConstantVariables.PATH_UPLOADS).toString());
 			newCompanyFile.setLoadTime(LocalDateTime.now());
 			newCompanyFile.setState((long) 1);
 			
