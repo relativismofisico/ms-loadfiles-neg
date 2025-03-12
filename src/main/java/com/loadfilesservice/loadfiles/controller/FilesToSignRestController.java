@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -19,14 +22,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.google.gson.Gson;
 import com.loadfilesservice.loadfiles.dto.Converter;
+import com.loadfilesservice.loadfiles.dto.FileSignedDTORequest;
 import com.loadfilesservice.loadfiles.dto.FileToSignDTOResponse;
+import com.loadfilesservice.loadfiles.entity.FileSigned;
 import com.loadfilesservice.loadfiles.entity.FileToSign;
+import com.loadfilesservice.loadfiles.exceptions.BadRequestException;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.service.ICompanyFileService;
+import com.loadfilesservice.loadfiles.service.IFileSignedService;
 import com.loadfilesservice.loadfiles.service.IFileToSignService;
 import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
@@ -42,6 +52,8 @@ import lombok.extern.slf4j.Slf4j;
 public class FilesToSignRestController {
 	
 	private final IFileToSignService fileToSignService;
+	
+	private final IFileSignedService fileSignedService;
 	
 	private final ICompanyFileService companyFileService;
 	
@@ -105,6 +117,51 @@ public class FilesToSignRestController {
 		headers.setContentDisposition(ContentDisposition.builder("inline").filename(companyFileFounded.get().getFileName()).build());
 		
 		return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+	}
+	
+	@PostMapping("/uploadsignedpdf")
+	public ResponseEntity<?> uploadSignedPdf(@RequestParam("file") MultipartFile file, 
+											 @RequestParam("fileinfo") String jsoSignedFile){
+		
+		Map<String, Object> response = new HashMap<>();
+		FileSignedDTORequest fileSignedDTO = new Gson().fromJson(jsoSignedFile, FileSignedDTORequest.class);
+		
+		if (file.isEmpty()) {
+			log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles]" + " No hay un archivo pdf firmado para subir");
+			throw new BadRequestException("No hay un archivo pdf firmado para subir");
+		}
+		
+		String pathFileSigned = ConstantVariables.FILES_REGISTRY_SIGNED + "/" + fileSignedDTO.getCompanyName();
+		
+		companyFileService.createFolder(pathFileSigned);
+		
+		String fileName = null;
+		
+		try {
+			fileName = companyFileService.copyFile(file, pathFileSigned);
+		} catch (Exception e) {
+			log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles]" + " Error al intentar subir el archivo pdf");
+			throw new InternalServerErrorException("Error al intentar subir el archivo pdf");
+		}
+		
+		FileSigned fileSigned = converter.FileSignedDTOtoFileSigned(fileSignedDTO);
+		FileSigned newFileSigned = null;
+		
+		fileSigned.setFileName(fileName);
+		fileSigned.setLoadTime(LocalDateTime.now());
+		fileSigned.setFilePath(pathFileSigned);
+		fileSigned.setState(Long.valueOf(1));
+		
+		try {
+			newFileSigned = fileSignedService.save(fileSigned);
+		} catch (Exception e) {
+			log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles]" + " Error al intentar guardar el registro del archivo en la base de datos: " + fileName);
+			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + fileName);
+		}
+		
+		response.put("saveFile", true);
+		
+		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
 	}
 
 }

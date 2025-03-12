@@ -1,21 +1,13 @@
 package com.loadfilesservice.loadfiles.controller;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +23,7 @@ import com.loadfilesservice.loadfiles.entity.CompanyFile;
 import com.loadfilesservice.loadfiles.entity.CompanyFileType;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.service.ICompanyFileService;
+import com.loadfilesservice.loadfiles.service.IFileSignedService;
 import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
 import jakarta.validation.Valid;
@@ -45,6 +38,8 @@ import lombok.extern.slf4j.Slf4j;
 public class LoadFilesRestController {
 
 	private final ICompanyFileService companyFileService;
+	
+	private final IFileSignedService fileSignedService;
 	
 	private final Converter converter;
 	

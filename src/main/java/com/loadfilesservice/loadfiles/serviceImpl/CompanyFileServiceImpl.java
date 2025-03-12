@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.loadfilesservice.loadfiles.dao.ICompanyFileDao;
 import com.loadfilesservice.loadfiles.entity.CompanyFile;
 import com.loadfilesservice.loadfiles.entity.CompanyFileType;
+import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.exceptions.ResourceNotFoundException;
 import com.loadfilesservice.loadfiles.service.ICompanyFileService;
 
@@ -93,6 +94,28 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 		}
 		
 		return false;
+	}
+	
+	@Override
+	public void createFolder(String folderPath) {
+		
+		File directory = new File(folderPath);
+		
+		if (!directory.exists()) {
+			boolean created = directory.mkdirs();
+			
+			if (created) {
+				log.info("[CompanyFileServiceImpl][createFolder][loadfiles]" + " La carpeta se creo con éxito " + folderPath);
+			}
+			else {
+				log.error("[CompanyFileServiceImpl][createFolder][loadfiles]" + " Error al intentar crear la carpeta " + folderPath);
+				throw new InternalServerErrorException("Error al intentar crear la carpeta " + folderPath);
+			}
+		}
+		else {
+			log.info("[CompanyFileServiceImpl][createFolder][loadfiles]" + " La carpeta ya existe");
+		}
+		
 	}
 
 	@Override

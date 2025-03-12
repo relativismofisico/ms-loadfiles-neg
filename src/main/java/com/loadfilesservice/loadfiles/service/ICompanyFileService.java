@@ -26,6 +26,8 @@ public interface ICompanyFileService {
 	
 	public boolean deleteFile(String fileName, String path);
 	
+	public void createFolder(String folderPath);
+	
 	public Path getPath(String fileName, String pathFile);
 	
 }
