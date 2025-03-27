@@ -50,6 +50,10 @@ public class SignController {
             @RequestParam("ipLoad") String ipLoad,
             @RequestParam("companyName") String companyName){
     	
+    	if (user == 0) {
+			user = null;
+		}
+    	
     	String pathFileSign = ConstantVariables.SIGNATURES_FOLDER + "/" + companyName;
 		companyFileService.createFolder(pathFileSign);
 		
