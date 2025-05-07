@@ -28,7 +28,7 @@ import com.loadfilesservice.loadfiles.util.ConstantVariables;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@CrossOrigin(origins = { "http://localhost:4200", "http://localhost:4300" })
+@CrossOrigin(origins = { "http://localhost:4300", "http://localhost:4400" })
 @RestController
 @RequestMapping("/signs")
 @RequiredArgsConstructor
