@@ -18,6 +18,8 @@ public interface ICompanyFileService {
 	
 	public List<CompanyFile> findByCompanyAndCompanyFileType(Long companyId, CompanyFileType companyFileType);
 	
+	public List<CompanyFile> findByCompanyAndState(Long companyId, Long state);
+	
 	public CompanyFile save(CompanyFile companyFile);
 	
 	public Resource loadFile(String fileName, String path) throws MalformedURLException;

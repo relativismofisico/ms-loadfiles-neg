@@ -13,9 +13,13 @@ import lombok.Data;
 @JsonAutoDetect(fieldVisibility = Visibility.ANY)
 public class CompanyFileDTOResponse implements Serializable{
 	
+	private Long id;
+	
 	private String fileName;
 	
 	private Date loadTime;
+	
+	private String ipLoad;
 	
 	private Long company;
 	

@@ -123,4 +123,10 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 		return Paths.get(pathFile).resolve(fileName).toAbsolutePath();
 	}
 
+	@Override
+	@Transactional(readOnly = true)
+	public List<CompanyFile> findByCompanyAndState(Long companyId, Long state) {
+		return companyFileDao.findByCompanyAndState(companyId, state);
+	}
+
 }
