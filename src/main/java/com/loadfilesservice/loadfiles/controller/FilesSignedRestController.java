@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,6 +48,7 @@ public class FilesSignedRestController {
 	
 	private final Converter converter;
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
 	@GetMapping(value = "/listofcompanysignedfiles/{id}", produces = "application/json")
 	public ResponseEntity<?> getListOfCompanySignedFiles(@PathVariable Long id){
 		List<FileSigned> filesSigned = fileSignedService.findByCompanyAndState(id, Long.valueOf(1));
@@ -60,6 +62,7 @@ public class FilesSignedRestController {
 		}
 	}
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
 	@PostMapping("/companyfilesignedpdf/{companyName}")
 	public ResponseEntity<byte[]> getPdfCompanyFileSigned(@Valid @RequestBody FileSigned file, @PathVariable String companyName)  {
 		Resource resource = null;

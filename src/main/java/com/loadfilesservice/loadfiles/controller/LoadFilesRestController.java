@@ -17,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -53,8 +54,9 @@ public class LoadFilesRestController {
 	
 	private final Converter converter;
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'carga')")
 	@PostMapping(value="/companyfile/upload", produces = "application/json")
-	public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile newfile, 
+	public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile newfile,
 										@RequestParam("fileinfo") String jsonCompanyFile){
 		
 		Map<String, Object> response = new HashMap<>();
@@ -120,6 +122,7 @@ public class LoadFilesRestController {
 		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
 	}
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
 	@PostMapping(value="/companyfile/upload/file/{id}")
 	public ResponseEntity<?> getFile(@Valid @RequestBody CompanyFileType fileType, @PathVariable Long id){
 		//Resource resource = null;
@@ -177,6 +180,7 @@ public class LoadFilesRestController {
 		
 	}
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
 	@GetMapping(value = "/listofcompanyfiles/{id}", produces = "application/json")
 	public ResponseEntity<?> getListOfCompanyFiles(@PathVariable Long id){
 		List<CompanyFile> companyFiles = companyFileService.findByCompanyAndState(id, Long.valueOf(1));
@@ -194,6 +198,7 @@ public class LoadFilesRestController {
 		
 	}
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
 	@PostMapping("/companyfilepdf")
 	public ResponseEntity<byte[]> getPdfCompanyFile(@Valid @RequestBody CompanyFile file)  {
 		Resource resource = null;
