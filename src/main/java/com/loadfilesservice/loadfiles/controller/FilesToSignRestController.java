@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +35,8 @@ import com.loadfilesservice.loadfiles.entity.FileToSign;
 import com.loadfilesservice.loadfiles.exceptions.BadRequestException;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.exceptions.ResourceNotFoundException;
-import com.loadfilesservice.loadfiles.service.ICompanyFileService;
 import com.loadfilesservice.loadfiles.service.IFileSignedService;
+import com.loadfilesservice.loadfiles.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.service.IFileToSignService;
 import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
@@ -53,11 +52,11 @@ import lombok.extern.slf4j.Slf4j;
 public class FilesToSignRestController {
 	
 	private final IFileToSignService fileToSignService;
-	
+
 	private final IFileSignedService fileSignedService;
-	
-	private final ICompanyFileService companyFileService;
-	
+
+	private final IFileStorageService fileStorageService;
+
 	private final Converter converter;
 	
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
@@ -71,7 +70,7 @@ public class FilesToSignRestController {
 			throw new ResourceNotFoundException("No hay archivos de registro de empresa para firmar en la BD");
 		}
 		else {
-			List<FileToSignDTOResponse> filesToSignDTO = filesToSign.stream().map(file -> converter.FileToSignToDTO(file))
+			List<FileToSignDTOResponse> filesToSignDTO = filesToSign.stream().map(file -> converter.fileToSignToDTO(file))
 					.collect(Collectors.toList());
 			
 			return ResponseEntity.status(HttpStatus.OK).body(filesToSignDTO);
@@ -93,7 +92,7 @@ public class FilesToSignRestController {
 		}
 		
 		try {
-			resource = companyFileService.loadFile(companyFileFounded.get().getFileName(), ConstantVariables.FILES_REGISTRY_SIGN);
+			resource = fileStorageService.loadFile(companyFileFounded.get().getFileName(), ConstantVariables.FILES_REGISTRY_SIGN);
 		} catch (MalformedURLException e) {
 			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg]" + " Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
 			throw new InternalServerErrorException("Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
@@ -126,45 +125,20 @@ public class FilesToSignRestController {
 	@PostMapping("/uploadsignedpdf")
 	public ResponseEntity<?> uploadSignedPdf(@RequestParam("file") MultipartFile file,
 											 @RequestParam("fileinfo") String jsoSignedFile){
-		
+
 		Map<String, Object> response = new HashMap<>();
 		FileSignedDTORequest fileSignedDTO = new Gson().fromJson(jsoSignedFile, FileSignedDTORequest.class);
-		
+
 		if (file.isEmpty()) {
-			log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles]" + " No hay un archivo pdf firmado para subir");
+			log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles] No hay un archivo pdf firmado para subir");
 			throw new BadRequestException("No hay un archivo pdf firmado para subir");
 		}
-		
-		String pathFileSigned = ConstantVariables.FILES_REGISTRY_SIGNED + "/" + fileSignedDTO.getCompanyName();
-		
-		companyFileService.createFolder(pathFileSigned);
-		
-		String fileName = null;
-		
-		try {
-			fileName = companyFileService.copyFile(file, pathFileSigned);
-		} catch (Exception e) {
-			log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles]" + " Error al intentar subir el archivo pdf");
-			throw new InternalServerErrorException("Error al intentar subir el archivo pdf");
-		}
-		
-		FileSigned fileSigned = converter.FileSignedDTOtoFileSigned(fileSignedDTO);
-		FileSigned newFileSigned = null;
-		
-		fileSigned.setFileName(fileName);
-		fileSigned.setLoadTime(LocalDateTime.now());
-		fileSigned.setFilePath(pathFileSigned);
-		fileSigned.setState(Long.valueOf(1));
-		
-		try {
-			newFileSigned = fileSignedService.save(fileSigned);
-		} catch (Exception e) {
-			log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles]" + " Error al intentar guardar el registro del archivo en la base de datos: " + fileName);
-			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + fileName);
-		}
-		
+
+		FileSigned fileSignedBase = converter.fileSignedDtoToFileSigned(fileSignedDTO);
+		fileSignedService.saveSignedFile(file, fileSignedBase, fileSignedDTO.getCompanyName());
+
 		response.put("saveFile", true);
-		
+
 		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
 	}
 

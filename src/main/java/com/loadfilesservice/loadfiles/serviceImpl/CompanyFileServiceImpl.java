@@ -1,17 +1,10 @@
 package com.loadfilesservice.loadfiles.serviceImpl;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +15,8 @@ import com.loadfilesservice.loadfiles.entity.CompanyFileType;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.exceptions.ResourceNotFoundException;
 import com.loadfilesservice.loadfiles.service.ICompanyFileService;
+import com.loadfilesservice.loadfiles.service.IFileStorageService;
+import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,19 +24,21 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CompanyFileServiceImpl implements ICompanyFileService{
-	
+public class CompanyFileServiceImpl implements ICompanyFileService {
+
 	private final ICompanyFileDao companyFileDao;
-	
+
+	private final IFileStorageService fileStorageService;
+
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<CompanyFile> findById(Long id) {
-		
+
 		if (!companyFileDao.existsById(id)) {
-			log.error("[CompanyFileServiceImpl][findById][loadfiles]" + " El archivo no se encuentra en la base de datos");
+			log.error("[CompanyFileServiceImpl][findById][loadfiles] El archivo no se encuentra en la base de datos");
 			throw new ResourceNotFoundException("El archivo no se pudo encontrar en la base de datos");
 		}
-		
+
 		return companyFileDao.findById(id);
 	}
 
@@ -58,75 +55,63 @@ public class CompanyFileServiceImpl implements ICompanyFileService{
 	}
 
 	@Override
-	public Resource loadFile(String fileName, String path) throws MalformedURLException {
-		Path pathFile = getPath(fileName, path);
-		
-		Resource resource = new UrlResource(pathFile.toUri());
-		
-		if (!resource.exists() && !resource.isReadable()) {
-			log.error("El archivo"+ fileName +" no se encuentra.");
-		}
-		
-		return resource;
-	}
-
-	@Override
-	public String copyFile(MultipartFile file, String path) throws IOException {
-		String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename().replace(" ", "");
-		Path pathFile = getPath(fileName, path);
-		
-		Files.copy(file.getInputStream(), pathFile);
-		
-		return fileName;
-	}
-
-	@Override
-	public boolean deleteFile(String fileName, String path) {
-		if (fileName != null && fileName.length() > 0) {
-			Path pathOldFile = getPath(fileName, path);
-			File oldFile = pathOldFile.toFile();
-			
-			if (oldFile.exists() && oldFile.canRead()) {
-				if (oldFile.delete()) {
-					return true;
-				}
-			}
-		}
-		
-		return false;
-	}
-	
-	@Override
-	public void createFolder(String folderPath) {
-		
-		File directory = new File(folderPath);
-		
-		if (!directory.exists()) {
-			boolean created = directory.mkdirs();
-			
-			if (created) {
-				log.info("[CompanyFileServiceImpl][createFolder][loadfiles]" + " La carpeta se creo con éxito " + folderPath);
-			}
-			else {
-				log.error("[CompanyFileServiceImpl][createFolder][loadfiles]" + " Error al intentar crear la carpeta " + folderPath);
-				throw new InternalServerErrorException("Error al intentar crear la carpeta " + folderPath);
-			}
-		}
-		else {
-			log.info("[CompanyFileServiceImpl][createFolder][loadfiles]" + " La carpeta ya existe");
-		}
-		
-	}
-
-	@Override
-	public Path getPath(String fileName, String pathFile) {
-		return Paths.get(pathFile).resolve(fileName).toAbsolutePath();
-	}
-
-	@Override
 	@Transactional(readOnly = true)
 	public List<CompanyFile> findByCompanyAndState(Long companyId, Long state) {
 		return companyFileDao.findByCompanyAndState(companyId, state);
+	}
+
+	@Override
+	@Transactional
+	public CompanyFile replaceCompanyFile(MultipartFile file, CompanyFile companyFileBase) {
+
+		List<CompanyFile> existing = companyFileDao.findByCompanyAndCompanyFileType(
+				companyFileBase.getCompany(), companyFileBase.getCompanyFileType());
+
+		CompanyFile oldCompanyFile = null;
+		for (CompanyFile companyFile : existing) {
+			if (companyFile.getState() == 1) {
+				oldCompanyFile = companyFile;
+			}
+		}
+
+		if (oldCompanyFile != null) {
+			oldCompanyFile.setState(0L);
+
+			try {
+				companyFileDao.save(oldCompanyFile);
+			} catch (Exception e) {
+				log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar actualizar el registro del archivo en la base de datos: {}", oldCompanyFile.getFileName());
+				throw new InternalServerErrorException("Error al intentar actualizar el registro del archivo en la base de datos: " + oldCompanyFile.getFileName());
+			}
+
+			try {
+				fileStorageService.deleteFile(oldCompanyFile.getFileName(), ConstantVariables.PATH_UPLOADS);
+			} catch (Exception e) {
+				log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar borrar el archivo: {}", oldCompanyFile.getFileName());
+				throw new InternalServerErrorException("Error al intentar borrar el archivo: " + oldCompanyFile.getFileName());
+			}
+		}
+
+		String newFileName;
+		try {
+			newFileName = fileStorageService.copyFile(file, ConstantVariables.PATH_UPLOADS);
+		} catch (IOException e) {
+			log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar guardar el archivo: {}", file.getOriginalFilename());
+			throw new InternalServerErrorException("Error al intentar guardar el archivo: " + file.getOriginalFilename());
+		}
+
+		companyFileBase.setFileName(newFileName);
+		companyFileBase.setOriginalFileName(file.getOriginalFilename());
+		companyFileBase.setFilePath(fileStorageService.getPath(newFileName, ConstantVariables.PATH_UPLOADS).toString());
+		companyFileBase.setLoadTime(LocalDateTime.now());
+		companyFileBase.setState(1L);
+
+		try {
+			return companyFileDao.save(companyFileBase);
+		} catch (Exception e) {
+			log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar guardar el registro del archivo en la base de datos: {}", newFileName);
+			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + newFileName);
+		}
 	}
 
 }

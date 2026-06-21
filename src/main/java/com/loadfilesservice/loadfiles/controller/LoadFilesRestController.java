@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +36,7 @@ import com.loadfilesservice.loadfiles.entity.CompanyFileType;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.exceptions.ResourceNotFoundException;
 import com.loadfilesservice.loadfiles.service.ICompanyFileService;
+import com.loadfilesservice.loadfiles.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
 import jakarta.validation.Valid;
@@ -51,74 +51,28 @@ import lombok.extern.slf4j.Slf4j;
 public class LoadFilesRestController {
 
 	private final ICompanyFileService companyFileService;
-	
+
+	private final IFileStorageService fileStorageService;
+
 	private final Converter converter;
 	
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'carga')")
 	@PostMapping(value="/companyfile/upload", produces = "application/json")
 	public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile newfile,
 										@RequestParam("fileinfo") String jsonCompanyFile){
-		
+
 		Map<String, Object> response = new HashMap<>();
 		CompanyFileDTORequest companyFileDTO = new Gson().fromJson(jsonCompanyFile, CompanyFileDTORequest.class);
-		
+
 		if (!newfile.isEmpty()) {
-			String newFileName = null;
-			CompanyFile oldCompanyFile = null;
-		
-			List<CompanyFile> listCompanyFile = companyFileService.findByCompanyAndCompanyFileType(companyFileDTO.getCompany(), companyFileDTO.getCompanyFileType());
-			
-			for (CompanyFile companyFile : listCompanyFile) {
-				if(companyFile.getState() == 1) {
-					oldCompanyFile = companyFile;
-				}
-			}
-			
-			if (oldCompanyFile != null) {
-				oldCompanyFile.setState((long) 0);
-				
-				try {
-					companyFileService.save(oldCompanyFile);
-				} catch (Exception e) {
-					log.error("[LoadFilesRestController][uploadFile][loadfiles]" + " Error al intentar actualizar el registro del archivo en la base de datos: " + oldCompanyFile.getFileName());
-					throw new InternalServerErrorException("Error al intentar actualizar el registro del archivo en la base de datos: " + oldCompanyFile.getFileName());
-				}
-				
-				try {
-					companyFileService.deleteFile(oldCompanyFile.getFileName(), ConstantVariables.PATH_UPLOADS);
-				} catch (Exception e) {
-					log.error("[LoadFilesRestController][uploadFile][loadfiles]" + " Error al intentar borrar el archivo: " + oldCompanyFile.getFileName());
-					throw new InternalServerErrorException("Error al intentar borrar el archivo: " + oldCompanyFile.getFileName());
-				}
-			}
-			
-			try {
-				newFileName = companyFileService.copyFile(newfile, ConstantVariables.PATH_UPLOADS);
-			} catch (Exception e) {
-				log.error("[LoadFilesRestController][uploadFile][loadfiles]" + " Error al intentar guardar el archivo: " + newfile.getOriginalFilename());
-				throw new InternalServerErrorException("Error al intentar guardar el archivo: " + newfile.getOriginalFilename());
-			}
-			
-			CompanyFile newCompanyFile = converter.companyFileDTOtoCompanyFile(companyFileDTO);
-			
-			newCompanyFile.setFileName(newFileName);
-			newCompanyFile.setOriginalFileName(newfile.getOriginalFilename());
-			newCompanyFile.setFilePath(companyFileService.getPath(newFileName, ConstantVariables.PATH_UPLOADS).toString());
-			newCompanyFile.setLoadTime(LocalDateTime.now());
-			newCompanyFile.setState((long) 1);
-			
-			System.out.println(newCompanyFile);
-			
-			try {
-				companyFileService.save(newCompanyFile);
-			} catch (Exception e) {
-				log.error("[LoadFilesRestController][uploadFile][loadfiles]" + " Error al intentar guardar el registro del archivo en la base de datos: " + newFileName);
-				throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + newFileName);
-			}
-			
-			response.put("savedFile", newCompanyFile);
+			CompanyFile companyFileBase = converter.companyFileDTOtoCompanyFile(companyFileDTO);
+			CompanyFile savedFile = companyFileService.replaceCompanyFile(newfile, companyFileBase);
+
+			System.out.println(savedFile);
+
+			response.put("savedFile", savedFile);
 		}
-		
+
 		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
 	}
 	
@@ -213,7 +167,7 @@ public class LoadFilesRestController {
 		}
 		
 		try {
-			resource = companyFileService.loadFile(companyFileFounded.get().getFileName(), ConstantVariables.PATH_UPLOADS);
+			resource = fileStorageService.loadFile(companyFileFounded.get().getFileName(), ConstantVariables.PATH_UPLOADS);
 		} catch (MalformedURLException e) {
 			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg]" + " Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
 			throw new InternalServerErrorException("Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
