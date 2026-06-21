@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +43,7 @@ public class SignController {
     /**
      * Guarda una firma en el servidor y en la base de datos.
      */
+    @PreAuthorize("@rolValidator.hasRol(authentication, 'firma-guardado')")
     @PostMapping("/save")
     public ResponseEntity<?> saveSign(
             @RequestParam("file") MultipartFile file,
@@ -123,6 +125,7 @@ public class SignController {
     /**
      * Obtiene la firma activa de una empresa.
      */
+    @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping("/company/{companyId}")
     public ResponseEntity<Resource> getActiveSignByCompany(@PathVariable Long companyId) {
     	
@@ -155,6 +158,7 @@ public class SignController {
     /**
      * Obtiene la firma activa de un usuario.
      */
+    @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping("/user/{userId}")
     public ResponseEntity<Resource> getActiveSignByUser(@PathVariable Long userId) {
 

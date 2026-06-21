@@ -17,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -59,6 +60,7 @@ public class FilesToSignRestController {
 	
 	private final Converter converter;
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
 	@GetMapping(value = "/filestosignregistry", produces = "application/json")
 	public ResponseEntity<?> getFileToSignCompanyRegistry(){
 		
@@ -76,6 +78,7 @@ public class FilesToSignRestController {
 		}
 	}
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
 	@PostMapping("/pdftosign")
 	public ResponseEntity<byte[]> getPdfToSign(@Valid @RequestBody FileToSign file)  {
 		Resource resource = null;
@@ -119,8 +122,9 @@ public class FilesToSignRestController {
 		return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
 	}
 	
+	@PreAuthorize("@rolValidator.hasRol(authentication, 'firma-subida')")
 	@PostMapping("/uploadsignedpdf")
-	public ResponseEntity<?> uploadSignedPdf(@RequestParam("file") MultipartFile file, 
+	public ResponseEntity<?> uploadSignedPdf(@RequestParam("file") MultipartFile file,
 											 @RequestParam("fileinfo") String jsoSignedFile){
 		
 		Map<String, Object> response = new HashMap<>();
