@@ -1,0 +1,55 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = "com.loadfilesservice"
+version = "0.0.1-SNAPSHOT"
+description = "Load files microservice for karonte"
+
+java {
+    sourceCompatibility = '17'
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+repositories {
+    mavenCentral()
+}
+
+apply from: "${rootProject.projectDir}/test.gradle"
+
+dependencies {
+    // Spring Boot starters
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
+    // Dev tools (only active during development, excluded from bootJar)
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
+
+    // Database drivers
+    runtimeOnly("com.microsoft.sqlserver:mssql-jdbc")
+    runtimeOnly("com.mysql:mysql-connector-j")
+
+    // Utilities
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("org.modelmapper:modelmapper:2.4.4")
+
+    // Lombok
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+
+    // Testing
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport // siempre genera reporte después de los tests
+
+}
+apply from: "${rootProject.projectDir}/coverage.gradle"
