@@ -1,6 +1,5 @@
 package com.loadfilesservice.loadfiles.serviceImpl;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -25,11 +24,11 @@ public class FileStorageServiceImpl implements IFileStorageService {
 	@Override
 	public Resource loadFile(String fileName, String path) throws MalformedURLException {
 		Path pathFile = getPath(fileName, path);
-
 		Resource resource = new UrlResource(pathFile.toUri());
 
-		if (!resource.exists() && !resource.isReadable()) {
-			log.error("El archivo {} no se encuentra.", fileName);
+		if (!resource.exists() || !resource.isReadable()) {
+			log.error("[FileStorageServiceImpl][loadFile][loadfiles] El archivo {} no se encuentra o no es legible.", fileName);
+			throw new InternalServerErrorException("El archivo no se encuentra o no es legible: " + fileName);
 		}
 
 		return resource;
@@ -37,7 +36,10 @@ public class FileStorageServiceImpl implements IFileStorageService {
 
 	@Override
 	public String copyFile(MultipartFile file, String path) throws IOException {
-		String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename().replace(" ", "");
+		String originalName = file.getOriginalFilename() != null
+				? file.getOriginalFilename().replace(" ", "")
+				: "file";
+		String fileName = UUID.randomUUID() + "_" + originalName;
 		Path pathFile = getPath(fileName, path);
 
 		Files.copy(file.getInputStream(), pathFile);
@@ -47,35 +49,31 @@ public class FileStorageServiceImpl implements IFileStorageService {
 
 	@Override
 	public boolean deleteFile(String fileName, String path) {
-		if (fileName != null && fileName.length() > 0) {
-			Path pathOldFile = getPath(fileName, path);
-			File oldFile = pathOldFile.toFile();
-
-			if (oldFile.exists() && oldFile.canRead()) {
-				if (oldFile.delete()) {
-					return true;
-				}
-			}
+		if (fileName == null || fileName.isEmpty()) {
+			return false;
 		}
-
-		return false;
+		try {
+			Path pathOldFile = getPath(fileName, path);
+			return Files.deleteIfExists(pathOldFile);
+		} catch (IOException e) {
+			log.warn("[FileStorageServiceImpl][deleteFile][loadfiles] No se pudo eliminar el archivo: {}", fileName);
+			return false;
+		}
 	}
 
 	@Override
 	public void createFolder(String folderPath) {
-		File directory = new File(folderPath);
-
-		if (!directory.exists()) {
-			boolean created = directory.mkdirs();
-
-			if (created) {
+		try {
+			Path dirPath = Paths.get(folderPath);
+			if (!Files.exists(dirPath)) {
+				Files.createDirectories(dirPath);
 				log.info("[FileStorageServiceImpl][createFolder][loadfiles] La carpeta se creo con éxito {}", folderPath);
 			} else {
-				log.error("[FileStorageServiceImpl][createFolder][loadfiles] Error al intentar crear la carpeta {}", folderPath);
-				throw new InternalServerErrorException("Error al intentar crear la carpeta " + folderPath);
+				log.info("[FileStorageServiceImpl][createFolder][loadfiles] La carpeta ya existe");
 			}
-		} else {
-			log.info("[FileStorageServiceImpl][createFolder][loadfiles] La carpeta ya existe");
+		} catch (IOException e) {
+			log.error("[FileStorageServiceImpl][createFolder][loadfiles] Error al intentar crear la carpeta {}", folderPath);
+			throw new InternalServerErrorException("Error al intentar crear la carpeta " + folderPath);
 		}
 	}
 

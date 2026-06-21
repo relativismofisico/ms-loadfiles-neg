@@ -56,8 +56,8 @@ public class SignServiceImpl implements ISignService {
 		try {
 			existingSign = signDao.findActiveSignByCompany(company);
 		} catch (Exception e) {
-			log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar consultar la firma en la base de datos");
-			throw new InternalServerErrorException("Error al intentar consultar la firma en la base de datos " + e.getMessage());
+			log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar consultar la firma en la base de datos", e);
+			throw new InternalServerErrorException("Error al intentar consultar la firma en la base de datos", e);
 		}
 
 		if (existingSign.isPresent()) {
@@ -74,8 +74,8 @@ public class SignServiceImpl implements ISignService {
 			try {
 				signDao.save(oldSign);
 			} catch (Exception e) {
-				log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar actualizar la firma antigua en la BD");
-				throw new InternalServerErrorException("Error al intentar actualizar la firma antigua en la BD " + e.getMessage());
+				log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar actualizar la firma antigua en la BD", e);
+				throw new InternalServerErrorException("Error al intentar actualizar la firma antigua en la BD", e);
 			}
 		}
 
@@ -83,8 +83,8 @@ public class SignServiceImpl implements ISignService {
 		try {
 			fileName = fileStorageService.copyFile(file, pathFileSign);
 		} catch (IOException e) {
-			log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar borrar la firma antigua de la ruta");
-			throw new InternalServerErrorException("Error al intentar borrar la firma antigua de la ruta " + e.getMessage());
+			log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar guardar el archivo de firma en la ruta", e);
+			throw new InternalServerErrorException("Error al intentar guardar el archivo de firma en la ruta", e);
 		}
 
 		Sign sign = new Sign();
@@ -99,8 +99,8 @@ public class SignServiceImpl implements ISignService {
 		try {
 			return signDao.save(sign);
 		} catch (Exception e) {
-			log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar guardar la nueva firma en la BD");
-			throw new InternalServerErrorException("Error al intentar guardar la nueva firma en la BD " + e.getMessage());
+			log.error("[SignServiceImpl][replaceSign][loadfiles] Error al intentar guardar la nueva firma en la BD", e);
+			throw new InternalServerErrorException("Error al intentar guardar la nueva firma en la BD", e);
 		}
 	}
 

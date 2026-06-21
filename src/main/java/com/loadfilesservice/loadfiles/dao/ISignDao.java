@@ -11,9 +11,9 @@ import com.loadfilesservice.loadfiles.entity.Sign;
 public interface ISignDao extends JpaRepository<Sign, Long>{
 	
 	@Query("SELECT s FROM Sign s WHERE s.company = :company AND s.state = 1")
-    public Optional<Sign> findActiveSignByCompany(@Param("company") Long company);
+    Optional<Sign> findActiveSignByCompany(@Param("company") Long company);
 
     @Query("SELECT s FROM Sign s WHERE s.user = :user AND s.state = 1")
-    public Optional<Sign> findActiveSignByUser(@Param("user") Long user);
+    Optional<Sign> findActiveSignByUser(@Param("user") Long user);
 
 }

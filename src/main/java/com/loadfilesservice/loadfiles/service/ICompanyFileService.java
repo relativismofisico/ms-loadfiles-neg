@@ -10,14 +10,14 @@ import com.loadfilesservice.loadfiles.entity.CompanyFileType;
 
 public interface ICompanyFileService {
 
-	public Optional<CompanyFile> findById(Long id);
+	Optional<CompanyFile> findById(Long id);
 
-	public List<CompanyFile> findByCompanyAndCompanyFileType(Long companyId, CompanyFileType companyFileType);
+	List<CompanyFile> findByCompanyAndCompanyFileType(Long companyId, CompanyFileType companyFileType);
 
-	public List<CompanyFile> findByCompanyAndState(Long companyId, Long state);
+	List<CompanyFile> findByCompanyAndState(Long companyId, Long state);
 
-	public CompanyFile save(CompanyFile companyFile);
+	CompanyFile save(CompanyFile companyFile);
 
-	public CompanyFile replaceCompanyFile(MultipartFile file, CompanyFile companyFileBase);
+	CompanyFile replaceCompanyFile(MultipartFile file, CompanyFile companyFileBase);
 
 }

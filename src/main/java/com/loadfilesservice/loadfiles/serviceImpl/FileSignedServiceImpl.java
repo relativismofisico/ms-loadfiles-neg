@@ -44,13 +44,12 @@ public class FileSignedServiceImpl implements IFileSignedService {
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<FileSigned> findById(Long id) {
-
-		if (!fileSignedDao.existsById(id)) {
+		Optional<FileSigned> result = fileSignedDao.findById(id);
+		if (result.isEmpty()) {
 			log.error("[FileSignedServiceImpl][findById][loadfiles] El archivo no se encuentra en la base de datos");
 			throw new ResourceNotFoundException("El archivo no se pudo encontrar en la base de datos");
 		}
-
-		return fileSignedDao.findById(id);
+		return result;
 	}
 
 	@Override
@@ -65,8 +64,8 @@ public class FileSignedServiceImpl implements IFileSignedService {
 		try {
 			fileName = fileStorageService.copyFile(file, pathFileSigned);
 		} catch (IOException e) {
-			log.error("[FileSignedServiceImpl][saveSignedFile][loadfiles] Error al intentar subir el archivo pdf");
-			throw new InternalServerErrorException("Error al intentar subir el archivo pdf");
+			log.error("[FileSignedServiceImpl][saveSignedFile][loadfiles] Error al intentar subir el archivo pdf", e);
+			throw new InternalServerErrorException("Error al intentar subir el archivo pdf", e);
 		}
 
 		fileSignedBase.setFileName(fileName);
@@ -77,8 +76,8 @@ public class FileSignedServiceImpl implements IFileSignedService {
 		try {
 			return fileSignedDao.save(fileSignedBase);
 		} catch (Exception e) {
-			log.error("[FileSignedServiceImpl][saveSignedFile][loadfiles] Error al intentar guardar el registro del archivo en la base de datos: {}", fileName);
-			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + fileName);
+			log.error("[FileSignedServiceImpl][saveSignedFile][loadfiles] Error al intentar guardar el registro del archivo en la base de datos: {}", fileName, e);
+			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + fileName, e);
 		}
 	}
 

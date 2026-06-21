@@ -50,7 +50,7 @@ public class SignController {
             @RequestParam("ipLoad") String ipLoad,
             @RequestParam("companyName") String companyName) {
 
-        if (user == 0) {
+        if (Long.valueOf(0L).equals(user)) {
             user = null;
         }
 
@@ -65,13 +65,12 @@ public class SignController {
     @GetMapping("/company/{companyId}")
     public ResponseEntity<Resource> getActiveSignByCompany(@PathVariable Long companyId) {
     	
-    	Optional<Sign> signOptional = null;
-    	
+    	Optional<Sign> signOptional;
     	try {
     		signOptional = signService.findActiveSignByCompany(companyId);
 		} catch (Exception e) {
-			log.error("[SignController][getActiveSignByCompany][loadfiles]" + " Error al intentar obtener la firma en la BD");
-			throw new InternalServerErrorException("Error al intentar obtener la firma en la BD " + e.getMessage());
+			log.error("[SignController][getActiveSignByCompany][loadfiles] Error al intentar obtener la firma en la BD", e);
+			throw new InternalServerErrorException("Error al intentar obtener la firma en la BD", e);
 		}
         
         if (signOptional.isEmpty()) {
@@ -98,13 +97,12 @@ public class SignController {
     @GetMapping("/user/{userId}")
     public ResponseEntity<Resource> getActiveSignByUser(@PathVariable Long userId) {
 
-    	Optional<Sign> signOptional = null;
-
+    	Optional<Sign> signOptional;
     	try {
     		signOptional = signService.findActiveSignByUser(userId);
 		} catch (Exception e) {
-			log.error("[SignController][getActiveSignByUser][loadfiles]" + " Error al intentar obtener la firma en la BD");
-			throw new InternalServerErrorException("Error al intentar obtener la firma en la BD " + e.getMessage());
+			log.error("[SignController][getActiveSignByUser][loadfiles] Error al intentar obtener la firma en la BD", e);
+			throw new InternalServerErrorException("Error al intentar obtener la firma en la BD", e);
 		}
 
         if (signOptional.isEmpty()) {
