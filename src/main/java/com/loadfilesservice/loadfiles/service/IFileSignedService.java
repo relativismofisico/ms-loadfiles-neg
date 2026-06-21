@@ -9,12 +9,12 @@ import com.loadfilesservice.loadfiles.entity.FileSigned;
 
 public interface IFileSignedService {
 
-	public FileSigned save(FileSigned fileSigned);
+	FileSigned save(FileSigned fileSigned);
 
-	public Optional<FileSigned> findById(Long id);
+	Optional<FileSigned> findById(Long id);
 
-	public List<FileSigned> findByCompanyAndState(Long companyId, Long state);
+	List<FileSigned> findByCompanyAndState(Long companyId, Long state);
 
-	public FileSigned saveSignedFile(MultipartFile file, FileSigned fileSignedBase, String companyName);
+	FileSigned saveSignedFile(MultipartFile file, FileSigned fileSignedBase, String companyName);
 
 }

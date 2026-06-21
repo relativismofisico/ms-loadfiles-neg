@@ -83,8 +83,8 @@ public class FilesToSignRestController {
 		try {
 			companyFileFounded = fileToSignService.findById(file.getId());
 		} catch (Exception e) {
-			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo");
-			throw new InternalServerErrorException("Error al intentar obtener el archivo");
+			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo", e);
+			throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
 		}
 
 		FileToSign fileToSign = companyFileFounded
@@ -104,8 +104,8 @@ public class FilesToSignRestController {
 			fileGetted = resource.getFile();
 		} catch (IOException e) {
 			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo del recurso: {}",
-					fileToSign.getFileName());
-			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + fileToSign.getFileName());
+					fileToSign.getFileName(), e);
+			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + fileToSign.getFileName(), e);
 		}
 
 		byte[] pdfBytes;
@@ -113,8 +113,8 @@ public class FilesToSignRestController {
 			pdfBytes = Files.readAllBytes(fileGetted.toPath());
 		} catch (IOException e) {
 			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar los bytes del archivo: {}",
-					fileToSign.getFileName());
-			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + fileToSign.getFileName());
+					fileToSign.getFileName(), e);
+			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + fileToSign.getFileName(), e);
 		}
 
 		HttpHeaders headers = new HttpHeaders();

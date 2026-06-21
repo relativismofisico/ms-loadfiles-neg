@@ -33,13 +33,12 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<CompanyFile> findById(Long id) {
-
-		if (!companyFileDao.existsById(id)) {
+		Optional<CompanyFile> result = companyFileDao.findById(id);
+		if (result.isEmpty()) {
 			log.error("[CompanyFileServiceImpl][findById][loadfiles] El archivo no se encuentra en la base de datos");
 			throw new ResourceNotFoundException("El archivo no se pudo encontrar en la base de datos");
 		}
-
-		return companyFileDao.findById(id);
+		return result;
 	}
 
 	@Override
@@ -78,8 +77,8 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
 			try {
 				companyFileDao.save(oldCompanyFile);
 			} catch (Exception e) {
-				log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar actualizar el registro del archivo en la base de datos: {}", oldCompanyFile.getFileName());
-				throw new InternalServerErrorException("Error al intentar actualizar el registro del archivo en la base de datos: " + oldCompanyFile.getFileName());
+				log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar actualizar el registro del archivo en la base de datos: {}", oldCompanyFile.getFileName(), e);
+				throw new InternalServerErrorException("Error al intentar actualizar el registro del archivo en la base de datos: " + oldCompanyFile.getFileName(), e);
 			}
 
 			try {
@@ -94,8 +93,8 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
 		try {
 			newFileName = fileStorageService.copyFile(file, ConstantVariables.PATH_UPLOADS);
 		} catch (IOException e) {
-			log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar guardar el archivo: {}", file.getOriginalFilename());
-			throw new InternalServerErrorException("Error al intentar guardar el archivo: " + file.getOriginalFilename());
+			log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar guardar el archivo: {}", file.getOriginalFilename(), e);
+			throw new InternalServerErrorException("Error al intentar guardar el archivo: " + file.getOriginalFilename(), e);
 		}
 
 		companyFileBase.setFileName(newFileName);
@@ -107,8 +106,8 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
 		try {
 			return companyFileDao.save(companyFileBase);
 		} catch (Exception e) {
-			log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar guardar el registro del archivo en la base de datos: {}", newFileName);
-			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + newFileName);
+			log.error("[CompanyFileServiceImpl][replaceCompanyFile][loadfiles] Error al intentar guardar el registro del archivo en la base de datos: {}", newFileName, e);
+			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + newFileName, e);
 		}
 	}
 

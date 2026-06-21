@@ -8,12 +8,12 @@ import com.loadfilesservice.loadfiles.entity.Sign;
 
 public interface ISignService {
 
-	public Optional<Sign> findActiveSignByCompany(Long company);
+	Optional<Sign> findActiveSignByCompany(Long company);
 
-	public Optional<Sign> findActiveSignByUser(Long user);
+	Optional<Sign> findActiveSignByUser(Long user);
 
-	public Sign save(Sign sign);
+	Sign save(Sign sign);
 
-	public Sign replaceSign(MultipartFile file, Long company, Long user, String ipLoad, String companyName);
+	Sign replaceSign(MultipartFile file, Long company, Long user, String ipLoad, String companyName);
 
 }

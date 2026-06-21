@@ -85,19 +85,14 @@ public class LoadFilesRestController {
 		try {
 			listCompanyFile = companyFileService.findByCompanyAndCompanyFileType(id, fileType);
 		} catch (Exception e) {
-			log.error("[LoadFilesRestController][getFile][loadfiles] Error al intentar obtener el archivo");
-			throw new InternalServerErrorException("Error al intentar obtener el archivo");
+			log.error("[LoadFilesRestController][getFile][loadfiles] Error al intentar obtener el archivo", e);
+			throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
 		}
 
-		CompanyFile companyFileFounded = listCompanyFile.stream()
+		listCompanyFile.stream()
 				.filter(cf -> Long.valueOf(1L).equals(cf.getState()))
 				.findFirst()
-				.orElse(null);
-
-		if (companyFileFounded != null) {
-			String fileOriginalName = companyFileFounded.getOriginalFileName();
-			response.put("fileName", fileOriginalName);
-		}
+				.ifPresent(cf -> response.put("fileName", cf.getOriginalFileName()));
 
 		return ResponseEntity.status(HttpStatus.OK).body(response);
 	}
@@ -126,8 +121,8 @@ public class LoadFilesRestController {
 		try {
 			companyFileFoundedOpt = companyFileService.findById(file.getId());
 		} catch (Exception e) {
-			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo");
-			throw new InternalServerErrorException("Error al intentar obtener el archivo");
+			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo", e);
+			throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
 		}
 
 		CompanyFile companyFileFounded = companyFileFoundedOpt
@@ -147,8 +142,8 @@ public class LoadFilesRestController {
 			fileGetted = resource.getFile();
 		} catch (IOException e) {
 			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo del recurso: {}",
-					companyFileFounded.getFileName());
-			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileFounded.getFileName());
+					companyFileFounded.getFileName(), e);
+			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileFounded.getFileName(), e);
 		}
 
 		byte[] pdfBytes;
@@ -156,8 +151,8 @@ public class LoadFilesRestController {
 			pdfBytes = Files.readAllBytes(fileGetted.toPath());
 		} catch (IOException e) {
 			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar los bytes del archivo: {}",
-					companyFileFounded.getFileName());
-			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + companyFileFounded.getFileName());
+					companyFileFounded.getFileName(), e);
+			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + companyFileFounded.getFileName(), e);
 		}
 
 		HttpHeaders headers = new HttpHeaders();

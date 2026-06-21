@@ -30,13 +30,12 @@ public class FileToSignServiceImpl implements IFileToSignService{
 	@Override
 	@Transactional(readOnly = true)
 	public Optional<FileToSign> findById(Long id) {
-		
-		if (!fileToSignDao.existsById(id)) {
+		Optional<FileToSign> result = fileToSignDao.findById(id);
+		if (result.isEmpty()) {
 			log.error("[FileToSignServiceImpl][findById][loadfiles] El archivo no se encuentra en la base de datos");
 			throw new ResourceNotFoundException("El archivo no se pudo encontrar en la base de datos");
 		}
-		
-		return fileToSignDao.findById(id);
+		return result;
 	}
 
 }
