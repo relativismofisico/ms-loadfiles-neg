@@ -26,8 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
-
 import com.google.gson.Gson;
 import com.loadfilesservice.loadfiles.dto.Converter;
 import com.loadfilesservice.loadfiles.dto.FileSignedDTORequest;
@@ -68,7 +66,7 @@ public class FilesToSignRestController {
 		
 		if (filesToSign.isEmpty()) {
 			log.error("[FilesToSignRestController][getFileToSignCompanyRegistry][ms-loadfiles-neg]" + " No hay archivos de registro de empresa para firmar en la BD");
-			throw new ResponseStatusException(HttpStatus.NO_CONTENT);
+			throw new ResourceNotFoundException("No hay archivos de registro de empresa para firmar en la BD");
 		}
 		else {
 			List<FileToSignDTOResponse> filesToSignDTO = filesToSign.stream().map(file -> converter.FileToSignToDTO(file))
