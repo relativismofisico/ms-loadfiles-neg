@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: ms-security
+  profiles:
+    active: dev
+  datasource:
+    url: "jdbc:mysql://dbcompany.cn48sgciaax1.us-east-2.rds.amazonaws.com:3306/dbcompany?useSSL=false&serverTimezone=UTC"
+    username: desarrollador
+    password: "Juliana1987****"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 5000
+      idle-timeout: 300000
+      max-lifetime: 600000
+      keepalive-time: 60000
+      connection-test-query: SELECT 1
+      validation-timeout: 2000
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8081
+  servlet:
+    context-path: /load
+
+logging:
+  level:
+    org.hibernate.SQL: debug
