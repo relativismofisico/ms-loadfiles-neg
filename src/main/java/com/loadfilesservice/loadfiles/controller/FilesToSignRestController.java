@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -19,13 +18,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.google.gson.Gson;
 import com.loadfilesservice.loadfiles.dto.Converter;
 import com.loadfilesservice.loadfiles.dto.FileSignedDTORequest;
@@ -50,7 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class FilesToSignRestController {
-	
+
 	private final IFileToSignService fileToSignService;
 
 	private final IFileSignedService fileSignedService;
@@ -58,73 +57,77 @@ public class FilesToSignRestController {
 	private final IFileStorageService fileStorageService;
 
 	private final Converter converter;
-	
+
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
 	@GetMapping(value = "/filestosignregistry", produces = "application/json")
-	public ResponseEntity<?> getFileToSignCompanyRegistry(){
-		
-		List<FileToSign> filesToSign = fileToSignService.findByCompanyFileTypeAndState(Long.valueOf(10), Long.valueOf(1));
-		
+	public ResponseEntity<?> getFileToSignCompanyRegistry() {
+
+		List<FileToSign> filesToSign = fileToSignService.findByCompanyFileTypeAndState(10L, 1L);
+
 		if (filesToSign.isEmpty()) {
-			log.error("[FilesToSignRestController][getFileToSignCompanyRegistry][ms-loadfiles-neg]" + " No hay archivos de registro de empresa para firmar en la BD");
+			log.error("[FilesToSignRestController][getFileToSignCompanyRegistry][ms-loadfiles-neg] No hay archivos de registro de empresa para firmar en la BD");
 			throw new ResourceNotFoundException("No hay archivos de registro de empresa para firmar en la BD");
-		}
-		else {
-			List<FileToSignDTOResponse> filesToSignDTO = filesToSign.stream().map(file -> converter.fileToSignToDTO(file))
-					.collect(Collectors.toList());
-			
+		} else {
+			List<FileToSignDTOResponse> filesToSignDTO = filesToSign.stream()
+					.map(converter::fileToSignToDTO)
+					.toList();
+
 			return ResponseEntity.status(HttpStatus.OK).body(filesToSignDTO);
 		}
 	}
-	
+
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
 	@PostMapping("/pdftosign")
-	public ResponseEntity<byte[]> getPdfToSign(@Valid @RequestBody FileToSign file)  {
-		Resource resource = null;
-		File fileGetted = null;
-		Optional<FileToSign> companyFileFounded = null;
-		
+	public ResponseEntity<byte[]> getPdfToSign(@Valid @RequestBody FileToSign file) {
+		Optional<FileToSign> companyFileFounded;
 		try {
 			companyFileFounded = fileToSignService.findById(file.getId());
 		} catch (Exception e) {
-			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg]" + " Error al intentar obtener el archivo");
+			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo");
 			throw new InternalServerErrorException("Error al intentar obtener el archivo");
 		}
-		
+
+		FileToSign fileToSign = companyFileFounded
+				.orElseThrow(() -> new InternalServerErrorException("Error al intentar obtener el archivo"));
+
+		Resource resource;
 		try {
-			resource = fileStorageService.loadFile(companyFileFounded.get().getFileName(), ConstantVariables.FILES_REGISTRY_SIGN);
+			resource = fileStorageService.loadFile(fileToSign.getFileName(), ConstantVariables.FILES_REGISTRY_SIGN);
 		} catch (MalformedURLException e) {
-			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg]" + " Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
-			throw new InternalServerErrorException("Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
+			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo: {}",
+					fileToSign.getFileName());
+			throw new InternalServerErrorException("Error al intentar obtener el archivo: " + fileToSign.getFileName());
 		}
-		
+
+		File fileGetted;
 		try {
 			fileGetted = resource.getFile();
 		} catch (IOException e) {
-			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg]" + " Error al intentar obtener el archivo del recurso: " + companyFileFounded.get().getFileName());
-			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileFounded.get().getFileName());
+			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo del recurso: {}",
+					fileToSign.getFileName());
+			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + fileToSign.getFileName());
 		}
-		
-		byte[] pdfBytes = null;
-		
+
+		byte[] pdfBytes;
 		try {
 			pdfBytes = Files.readAllBytes(fileGetted.toPath());
 		} catch (IOException e) {
-			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg]" + " Error al intentar los bytes del archivo: " + companyFileFounded.get().getFileName());
-			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + companyFileFounded.get().getFileName());
+			log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar los bytes del archivo: {}",
+					fileToSign.getFileName());
+			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + fileToSign.getFileName());
 		}
-		
+
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_PDF);
-		headers.setContentDisposition(ContentDisposition.builder("inline").filename(companyFileFounded.get().getFileName()).build());
-		
+		headers.setContentDisposition(ContentDisposition.builder("inline").filename(fileToSign.getFileName()).build());
+
 		return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
 	}
-	
+
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'firma-subida')")
 	@PostMapping("/uploadsignedpdf")
 	public ResponseEntity<?> uploadSignedPdf(@RequestParam("file") MultipartFile file,
-											 @RequestParam("fileinfo") String jsoSignedFile){
+											 @RequestParam("fileinfo") String jsoSignedFile) {
 
 		Map<String, Object> response = new HashMap<>();
 		FileSignedDTORequest fileSignedDTO = new Gson().fromJson(jsoSignedFile, FileSignedDTORequest.class);
@@ -139,7 +142,7 @@ public class FilesToSignRestController {
 
 		response.put("saveFile", true);
 
-		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 
 }

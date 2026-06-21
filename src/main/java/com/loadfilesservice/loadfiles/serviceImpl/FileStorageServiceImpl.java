@@ -28,7 +28,7 @@ public class FileStorageServiceImpl implements IFileStorageService {
 
 		Resource resource = new UrlResource(pathFile.toUri());
 
-		if (!resource.exists() && !resource.isReadable()) {
+		if (!resource.exists() || !resource.isReadable()) {
 			log.error("El archivo {} no se encuentra.", fileName);
 		}
 
@@ -37,7 +37,10 @@ public class FileStorageServiceImpl implements IFileStorageService {
 
 	@Override
 	public String copyFile(MultipartFile file, String path) throws IOException {
-		String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename().replace(" ", "");
+		String originalName = file.getOriginalFilename() != null
+				? file.getOriginalFilename().replace(" ", "")
+				: "file";
+		String fileName = UUID.randomUUID() + "_" + originalName;
 		Path pathFile = getPath(fileName, path);
 
 		Files.copy(file.getInputStream(), pathFile);
@@ -47,7 +50,7 @@ public class FileStorageServiceImpl implements IFileStorageService {
 
 	@Override
 	public boolean deleteFile(String fileName, String path) {
-		if (fileName != null && fileName.length() > 0) {
+		if (fileName != null && !fileName.isEmpty()) {
 			Path pathOldFile = getPath(fileName, path);
 			File oldFile = pathOldFile.toFile();
 

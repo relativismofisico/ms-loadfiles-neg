@@ -67,12 +67,10 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
 		List<CompanyFile> existing = companyFileDao.findByCompanyAndCompanyFileType(
 				companyFileBase.getCompany(), companyFileBase.getCompanyFileType());
 
-		CompanyFile oldCompanyFile = null;
-		for (CompanyFile companyFile : existing) {
-			if (companyFile.getState() == 1) {
-				oldCompanyFile = companyFile;
-			}
-		}
+		CompanyFile oldCompanyFile = existing.stream()
+				.filter(cf -> Long.valueOf(1L).equals(cf.getState()))
+				.findFirst()
+				.orElse(null);
 
 		if (oldCompanyFile != null) {
 			oldCompanyFile.setState(0L);

@@ -32,7 +32,7 @@ public class FileToSignServiceImpl implements IFileToSignService{
 	public Optional<FileToSign> findById(Long id) {
 		
 		if (!fileToSignDao.existsById(id)) {
-			log.error("[FileToSignServiceImpl][findById][loadfiles]" + " El archivo no se encuentra en la base de datos");
+			log.error("[FileToSignServiceImpl][findById][loadfiles] El archivo no se encuentra en la base de datos");
 			throw new ResourceNotFoundException("El archivo no se pudo encontrar en la base de datos");
 		}
 		

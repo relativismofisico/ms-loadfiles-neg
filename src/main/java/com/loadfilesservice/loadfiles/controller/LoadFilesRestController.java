@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -55,11 +54,11 @@ public class LoadFilesRestController {
 	private final IFileStorageService fileStorageService;
 
 	private final Converter converter;
-	
+
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'carga')")
-	@PostMapping(value="/companyfile/upload", produces = "application/json")
+	@PostMapping(value = "/companyfile/upload", produces = "application/json")
 	public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile newfile,
-										@RequestParam("fileinfo") String jsonCompanyFile){
+										@RequestParam("fileinfo") String jsonCompanyFile) {
 
 		Map<String, Object> response = new HashMap<>();
 		CompanyFileDTORequest companyFileDTO = new Gson().fromJson(jsonCompanyFile, CompanyFileDTORequest.class);
@@ -68,133 +67,104 @@ public class LoadFilesRestController {
 			CompanyFile companyFileBase = converter.companyFileDTOtoCompanyFile(companyFileDTO);
 			CompanyFile savedFile = companyFileService.replaceCompanyFile(newfile, companyFileBase);
 
-			System.out.println(savedFile);
+			log.info("[LoadFilesRestController][uploadFile][loadfiles] Archivo guardado: {}", savedFile);
 
 			response.put("savedFile", savedFile);
 		}
 
-		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.CREATED);
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
-	
+
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
-	@PostMapping(value="/companyfile/upload/file/{id}")
-	public ResponseEntity<?> getFile(@Valid @RequestBody CompanyFileType fileType, @PathVariable Long id){
-		//Resource resource = null;
-		//File fileGetted = null;
-		CompanyFile companyFileFounded = null;
-		List<CompanyFile> listCompanyFile = null;
-		String fileOriginalName = null;
+	@PostMapping(value = "/companyfile/upload/file/{id}")
+	public ResponseEntity<?> getFile(@Valid @RequestBody CompanyFileType fileType, @PathVariable Long id) {
+
 		Map<String, Object> response = new HashMap<>();
-		
+
+		List<CompanyFile> listCompanyFile;
 		try {
 			listCompanyFile = companyFileService.findByCompanyAndCompanyFileType(id, fileType);
 		} catch (Exception e) {
-			log.error("[LoadFilesRestController][getFile][loadfiles]" + " Error al intentar obtener el archivo");
+			log.error("[LoadFilesRestController][getFile][loadfiles] Error al intentar obtener el archivo");
 			throw new InternalServerErrorException("Error al intentar obtener el archivo");
 		}
-		
-		
-		for (CompanyFile companyFile : listCompanyFile) {
-			if(companyFile.getState() == 1) {
-				companyFileFounded = companyFile;
-			}
-		}
-		
-		if(companyFileFounded != null) {
-			
-			fileOriginalName = companyFileFounded.getOriginalFileName();
+
+		CompanyFile companyFileFounded = listCompanyFile.stream()
+				.filter(cf -> Long.valueOf(1L).equals(cf.getState()))
+				.findFirst()
+				.orElse(null);
+
+		if (companyFileFounded != null) {
+			String fileOriginalName = companyFileFounded.getOriginalFileName();
 			response.put("fileName", fileOriginalName);
-			
-			/*try {
-				resource = companyFileService.loadFile(companyFileFounded.getFileName());
-			} catch (MalformedURLException e) {
-				log.error("[LoadFilesRestController][getFile][loadfiles]" + " Error al intentar obtener el archivo: " + companyFileFounded.getFileName());
-				throw new InternalServerErrorException("Error al intentar obtener el archivo: " + companyFileFounded.getFileName());
-			}*/
 		}
-		
-		return new ResponseEntity<Map<String, Object>>(response, HttpStatus.OK);
-		
-		//if(resource != null) {
-			/*HttpHeaders headers = new HttpHeaders();
-			headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"");*/
-			
-			/*try {
-				fileGetted = resource.getFile();
-			} catch (IOException e) {
-				log.error("[LoadFilesRestController][getFile][loadfiles]" + " Error al intentar obtener el archivo del recurso: " + companyFileFounded.getFileName());
-				throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileFounded.getFileName());
-			}
-			
-			return new ResponseEntity<File>(fileGetted, HttpStatus.OK);
-		}
-		else {
-			return new ResponseEntity<File>(fileGetted, HttpStatus.OK);
-		}*/
-		
+
+		return ResponseEntity.status(HttpStatus.OK).body(response);
 	}
-	
+
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
 	@GetMapping(value = "/listofcompanyfiles/{id}", produces = "application/json")
-	public ResponseEntity<?> getListOfCompanyFiles(@PathVariable Long id){
-		List<CompanyFile> companyFiles = companyFileService.findByCompanyAndState(id, Long.valueOf(1));
-		
+	public ResponseEntity<?> getListOfCompanyFiles(@PathVariable Long id) {
+		List<CompanyFile> companyFiles = companyFileService.findByCompanyAndState(id, 1L);
+
 		if (companyFiles.isEmpty()) {
-			log.error("[LoadFilesRestController][getListOfCompanyFiles][loadfiles]" + " No hay archivos de la empresa en la BD");
+			log.error("[LoadFilesRestController][getListOfCompanyFiles][loadfiles] No hay archivos de la empresa en la BD");
 			throw new ResourceNotFoundException("No hay archivos de la empresa en la BD");
-		}
-		else {
-			List<CompanyFileDTOResponse> companyFilesDTO = companyFiles.stream().map(file -> converter.companyFileToDTO(file))
-					.collect(Collectors.toList());
-			
+		} else {
+			List<CompanyFileDTOResponse> companyFilesDTO = companyFiles.stream()
+					.map(converter::companyFileToDTO)
+					.toList();
+
 			return ResponseEntity.status(HttpStatus.OK).body(companyFilesDTO);
 		}
-		
 	}
-	
+
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
 	@PostMapping("/companyfilepdf")
-	public ResponseEntity<byte[]> getPdfCompanyFile(@Valid @RequestBody CompanyFile file)  {
-		Resource resource = null;
-		File fileGetted = null;
-		Optional<CompanyFile> companyFileFounded = null;
-		
+	public ResponseEntity<byte[]> getPdfCompanyFile(@Valid @RequestBody CompanyFile file) {
+		Optional<CompanyFile> companyFileFoundedOpt;
 		try {
-			companyFileFounded = companyFileService.findById(file.getId());
+			companyFileFoundedOpt = companyFileService.findById(file.getId());
 		} catch (Exception e) {
-			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg]" + " Error al intentar obtener el archivo");
+			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo");
 			throw new InternalServerErrorException("Error al intentar obtener el archivo");
 		}
-		
+
+		CompanyFile companyFileFounded = companyFileFoundedOpt
+				.orElseThrow(() -> new InternalServerErrorException("Error al intentar obtener el archivo"));
+
+		Resource resource;
 		try {
-			resource = fileStorageService.loadFile(companyFileFounded.get().getFileName(), ConstantVariables.PATH_UPLOADS);
+			resource = fileStorageService.loadFile(companyFileFounded.getFileName(), ConstantVariables.PATH_UPLOADS);
 		} catch (MalformedURLException e) {
-			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg]" + " Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
-			throw new InternalServerErrorException("Error al intentar obtener el archivo: " + companyFileFounded.get().getFileName());
+			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo: {}",
+					companyFileFounded.getFileName());
+			throw new InternalServerErrorException("Error al intentar obtener el archivo: " + companyFileFounded.getFileName());
 		}
-		
+
+		File fileGetted;
 		try {
 			fileGetted = resource.getFile();
 		} catch (IOException e) {
-			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg]" + " Error al intentar obtener el archivo del recurso: " + companyFileFounded.get().getFileName());
-			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileFounded.get().getFileName());
+			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo del recurso: {}",
+					companyFileFounded.getFileName());
+			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileFounded.getFileName());
 		}
-		
-		byte[] pdfBytes = null;
-		
+
+		byte[] pdfBytes;
 		try {
 			pdfBytes = Files.readAllBytes(fileGetted.toPath());
 		} catch (IOException e) {
-			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg]" + " Error al intentar los bytes del archivo: " + companyFileFounded.get().getFileName());
-			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + companyFileFounded.get().getFileName());
+			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar los bytes del archivo: {}",
+					companyFileFounded.getFileName());
+			throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + companyFileFounded.getFileName());
 		}
-		
+
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_PDF);
-		headers.setContentDisposition(ContentDisposition.builder("inline").filename(companyFileFounded.get().getFileName()).build());
-		
+		headers.setContentDisposition(ContentDisposition.builder("inline").filename(companyFileFounded.getFileName()).build());
+
 		return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
-		
 	}
-	
+
 }
