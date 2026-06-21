@@ -147,19 +147,19 @@ public class SignController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + sign.getFileName() + "\"")
                     .body(file);
         } catch (MalformedURLException e) {
-            log.error("Error al cargar la firma", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            log.error("[SignController][getActiveSignByCompany][loadfiles] Error al cargar la firma", e);
+            throw new InternalServerErrorException("Error al cargar el archivo de firma: " + sign.getFileName());
         }
     }
-    
+
     /**
      * Obtiene la firma activa de un usuario.
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<Resource> getActiveSignByUser(@PathVariable Long userId) {
-    	
+
     	Optional<Sign> signOptional = null;
-    	
+
     	try {
     		signOptional = signService.findActiveSignByUser(userId);
 		} catch (Exception e) {
@@ -179,8 +179,8 @@ public class SignController {
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + sign.getFileName() + "\"")
                     .body(file);
         } catch (MalformedURLException e) {
-            log.error("Error al cargar la firma", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            log.error("[SignController][getActiveSignByUser][loadfiles] Error al cargar la firma", e);
+            throw new InternalServerErrorException("Error al cargar el archivo de firma: " + sign.getFileName());
         }
     }
 
