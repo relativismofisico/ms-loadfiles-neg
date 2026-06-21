@@ -7,30 +7,25 @@ import com.loadfilesservice.loadfiles.entity.CompanyFile;
 import com.loadfilesservice.loadfiles.entity.FileSigned;
 import com.loadfilesservice.loadfiles.entity.FileToSign;
 
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
-
 @Component
-@Data
-@RequiredArgsConstructor
 public class Converter {
 
 	private final ModelMapper modelMapper = new ModelMapper();
-	
+
 	public CompanyFileDTOResponse companyFileToDTO(CompanyFile companyFile) {
 		return modelMapper.map(companyFile, CompanyFileDTOResponse.class);
 	}
-	
+
 	public CompanyFile companyFileDTOtoCompanyFile(CompanyFileDTORequest companyFileDTO) {
 		return modelMapper.map(companyFileDTO, CompanyFile.class);
 	}
-	
-	public FileToSignDTOResponse FileToSignToDTO(FileToSign fileToSign) {
+
+	public FileToSignDTOResponse fileToSignToDTO(FileToSign fileToSign) {
 		return modelMapper.map(fileToSign, FileToSignDTOResponse.class);
 	}
-	
-	public FileSigned FileSignedDTOtoFileSigned(FileSignedDTORequest fileSignedDTO) {
+
+	public FileSigned fileSignedDtoToFileSigned(FileSignedDTORequest fileSignedDTO) {
 		return modelMapper.map(fileSignedDTO, FileSigned.class);
 	}
-	
+
 }

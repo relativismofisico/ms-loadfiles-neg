@@ -27,8 +27,8 @@ import com.loadfilesservice.loadfiles.dto.Converter;
 import com.loadfilesservice.loadfiles.entity.FileSigned;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.exceptions.ResourceNotFoundException;
-import com.loadfilesservice.loadfiles.service.ICompanyFileService;
 import com.loadfilesservice.loadfiles.service.IFileSignedService;
+import com.loadfilesservice.loadfiles.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
 import jakarta.validation.Valid;
@@ -43,9 +43,9 @@ import lombok.extern.slf4j.Slf4j;
 public class FilesSignedRestController {
 	
 	private final IFileSignedService fileSignedService;
-	
-	private final ICompanyFileService companyFileService;
-	
+
+	private final IFileStorageService fileStorageService;
+
 	private final Converter converter;
 	
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
@@ -77,7 +77,7 @@ public class FilesSignedRestController {
 		}
 		
 		try {
-			resource = companyFileService.loadFile(companyFileSignedFounded.get().getFileName(), ConstantVariables.FILES_REGISTRY_SIGNED + "/" + companyName);
+			resource = fileStorageService.loadFile(companyFileSignedFounded.get().getFileName(), ConstantVariables.FILES_REGISTRY_SIGNED + "/" + companyName);
 		} catch (MalformedURLException e) {
 			log.error("[FilesSignedRestController][getPdfCompanyFileSigned][ms-loadfiles-neg]" + " Error al intentar obtener el archivo: " + companyFileSignedFounded.get().getFileName());
 			throw new InternalServerErrorException("Error al intentar obtener el archivo: " + companyFileSignedFounded.get().getFileName());

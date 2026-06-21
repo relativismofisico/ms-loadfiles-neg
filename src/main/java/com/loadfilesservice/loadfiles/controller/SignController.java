@@ -1,8 +1,6 @@
 package com.loadfilesservice.loadfiles.controller;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.core.io.Resource;
@@ -22,9 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.loadfilesservice.loadfiles.entity.Sign;
 import com.loadfilesservice.loadfiles.exceptions.InternalServerErrorException;
-import com.loadfilesservice.loadfiles.service.ICompanyFileService;
+import com.loadfilesservice.loadfiles.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.service.ISignService;
-import com.loadfilesservice.loadfiles.util.ConstantVariables;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 public class SignController {
 	
 	private final ISignService signService;
-    private final ICompanyFileService companyFileService;
+
+	private final IFileStorageService fileStorageService;
     
     
     /**
@@ -50,75 +48,13 @@ public class SignController {
             @RequestParam("company") Long company,
             @RequestParam("user") Long user,
             @RequestParam("ipLoad") String ipLoad,
-            @RequestParam("companyName") String companyName){
-    	
-    	if (user == 0) {
-			user = null;
-		}
-    	
-    	String pathFileSign = ConstantVariables.SIGNATURES_FOLDER + "/" + companyName;
-		companyFileService.createFolder(pathFileSign);
-		
-		Optional<Sign> existingSign = null;
-		
-		// Verificar si ya existe una firma activa para la empresa
-		try {
-			 existingSign = signService.findActiveSignByCompany(company);
-		} catch (Exception e) {
-			log.error("[SignController][saveSign][loadfiles]" + " Error al intentar consultar la firma en la base de datos");
-			throw new InternalServerErrorException("Error al intentar consultar la firma en la base de datos " + e.getMessage());
-		}
-    	
-		if (existingSign.isPresent()) {
-            Sign oldSign = existingSign.get();
-            
-            // Eliminar el archivo antiguo antes de marcarlo como inactivo
-            boolean deleted = companyFileService.deleteFile(oldSign.getFileName(), pathFileSign);
-            if (deleted) {
-                log.info("Archivo antiguo eliminado: " + oldSign.getFilePath() + "/" + oldSign.getFileName());
-            } else {
-                log.warn("No se pudo eliminar el archivo antiguo: " + oldSign.getFilePath() + "/" + oldSign.getFileName());
-            }
+            @RequestParam("companyName") String companyName) {
 
-            oldSign.setState(0L); // Marcar como inactiva
-            
-            try {
-            	signService.save(oldSign);
-			} catch (Exception e) {
-				log.error("[SignController][saveSign][loadfiles]" + " Error al intentar actualizar la firma antigua en la BD");
-				throw new InternalServerErrorException("Error al intentar actualizar la firma antigua en la BD " + e.getMessage());
-			}
+        if (user == 0) {
+            user = null;
         }
-		
-		String fileName = null;
-		
-		// Guardar el nuevo archivo en la ruta especificada
-        try {
-			fileName = companyFileService.copyFile(file, pathFileSign);
-		} catch (IOException e) {
-			log.error("[SignController][saveSign][loadfiles]" + " Error al intentar borrar la firma antigua de la ruta");
-			throw new InternalServerErrorException("Error al intentar borrar la firma antigua de la ruta " + e.getMessage());
-		}
-        
-     // Guardar la nueva firma en la base de datos
-        Sign sign = new Sign();
-        sign.setFileName(fileName);
-        sign.setFilePath(pathFileSign);
-        sign.setIpLoad(ipLoad);
-        sign.setCompany(company);
-        sign.setUser(user);
-        sign.setState(1L); // Estado activo
-        sign.setLoadTime(LocalDateTime.now());
 
-        Sign savedSign = null;
-        
-        try {
-        	savedSign = signService.save(sign);
-		} catch (Exception e) {
-			log.error("[SignController][saveSign][loadfiles]" + " Error al intentar guardar la nueva firma en la BD");
-			throw new InternalServerErrorException("Error al intentar guardar la nueva firma en la BD " + e.getMessage());
-		}
-        
+        Sign savedSign = signService.replaceSign(file, company, user, ipLoad, companyName);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedSign);
     }
     
@@ -144,7 +80,7 @@ public class SignController {
 
         Sign sign = signOptional.get();
         try {
-            Resource file = companyFileService.loadFile(sign.getFileName(), sign.getFilePath());
+            Resource file = fileStorageService.loadFile(sign.getFileName(), sign.getFilePath());
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + sign.getFileName() + "\"")
@@ -177,7 +113,7 @@ public class SignController {
 
         Sign sign = signOptional.get();
         try {
-            Resource file = companyFileService.loadFile(sign.getFileName(), sign.getFilePath());
+            Resource file = fileStorageService.loadFile(sign.getFileName(), sign.getFilePath());
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + sign.getFileName() + "\"")
