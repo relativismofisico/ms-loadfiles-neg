@@ -3,17 +3,16 @@ package com.loadfilesservice.loadfiles.infraestrutura.usecase;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
 import com.loadfilesservice.loadfiles.application.service.IFileToSignService;
 import com.loadfilesservice.loadfiles.domain.FileToSign;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IFileToSignDao;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+/** Implementación del servicio de archivos pendientes de firma. */
 @Service
 @RequiredArgsConstructor
 @Slf4j

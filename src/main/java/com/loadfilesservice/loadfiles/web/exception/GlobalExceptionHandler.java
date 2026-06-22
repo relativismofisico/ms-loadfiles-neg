@@ -2,6 +2,11 @@ package com.loadfilesservice.loadfiles.web.exception;
 
 import java.util.stream.Collectors;
 
+import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
+import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
+import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
+import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -12,17 +17,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
-import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
-import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
-import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
-
-import lombok.extern.slf4j.Slf4j;
-
+/** Manejador global de excepciones para la API REST. */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
+    /** Maneja excepciones de autenticación fallida. */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiErrorResponse> handleAuthenticationException(
             AuthenticationException ex, WebRequest request) {
@@ -36,6 +36,7 @@ public class GlobalExceptionHandler {
                         extractPath(request)));
     }
 
+    /** Maneja excepciones de acceso denegado. */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> handleAccessDeniedException(
             AccessDeniedException ex, WebRequest request) {
@@ -49,6 +50,7 @@ public class GlobalExceptionHandler {
                         extractPath(request)));
     }
 
+    /** Maneja excepciones de recurso no encontrado. */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleResourceNotFound(
             ResourceNotFoundException ex, WebRequest request) {
@@ -62,6 +64,7 @@ public class GlobalExceptionHandler {
                         extractPath(request)));
     }
 
+    /** Maneja excepciones de solicitud inválida. */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiErrorResponse> handleBadRequest(
             BadRequestException ex, WebRequest request) {
@@ -75,6 +78,7 @@ public class GlobalExceptionHandler {
                         extractPath(request)));
     }
 
+    /** Maneja excepciones de error interno del servidor. */
     @ExceptionHandler(InternalServerErrorException.class)
     public ResponseEntity<ApiErrorResponse> handleInternalServerError(
             InternalServerErrorException ex, WebRequest request) {
@@ -88,6 +92,7 @@ public class GlobalExceptionHandler {
                         extractPath(request)));
     }
 
+    /** Maneja errores de validación de campos. */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidationErrors(
             MethodArgumentNotValidException ex, WebRequest request) {
@@ -104,20 +109,33 @@ public class GlobalExceptionHandler {
                         extractPath(request)));
     }
 
+    /** Maneja excepciones de estado HTTP específico. */
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiErrorResponse> handleResponseStatus(
             ResponseStatusException ex, WebRequest request) {
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
-        String reason = status != null ? status.getReasonPhrase() : "Error";
+        String reason;
+        if (status != null) {
+            reason = status.getReasonPhrase();
+        } else {
+            reason = "Error";
+        }
+        String body;
+        if (ex.getReason() != null) {
+            body = ex.getReason();
+        } else {
+            body = reason;
+        }
         return ResponseEntity
                 .status(ex.getStatusCode())
                 .body(ApiErrorResponse.of(
                         ex.getStatusCode().value(),
                         reason,
-                        ex.getReason() != null ? ex.getReason() : reason,
+                        body,
                         extractPath(request)));
     }
 
+    /** Maneja cualquier excepción no contemplada por los demás manejadores. */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGenericException(
             Exception ex, WebRequest request) {

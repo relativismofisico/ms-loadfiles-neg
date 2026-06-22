@@ -7,16 +7,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
+import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
+import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
-import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
-
-import lombok.extern.slf4j.Slf4j;
-
+/** Implementación del servicio de almacenamiento de archivos en el sistema de ficheros. */
 @Service
 @Slf4j
 public class FileStorageServiceImpl implements IFileStorageService {
@@ -37,7 +36,12 @@ public class FileStorageServiceImpl implements IFileStorageService {
     @Override
     public String copyFile(MultipartFile file, String path) throws IOException {
         String rawName = file.getOriginalFilename();
-        String originalName = rawName != null ? rawName.replace(" ", "") : "file";
+        String originalName;
+        if (rawName != null) {
+            originalName = rawName.replace(" ", "");
+        } else {
+            originalName = "file";
+        }
         String fileName = UUID.randomUUID() + "_" + originalName;
         Path pathFile = getPath(fileName, path);
 

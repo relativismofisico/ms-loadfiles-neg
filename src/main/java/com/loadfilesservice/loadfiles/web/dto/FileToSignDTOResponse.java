@@ -5,12 +5,14 @@ import java.io.Serializable;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.loadfilesservice.loadfiles.domain.CompanyFileType;
-
 import lombok.Data;
 
+/** DTO de respuesta para archivos pendientes de firma. */
 @Data
 @JsonAutoDetect(fieldVisibility = Visibility.ANY)
 public class FileToSignDTOResponse implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 
@@ -19,7 +21,5 @@ public class FileToSignDTOResponse implements Serializable {
     private String filePath;
 
     private CompanyFileType companyFileType;
-
-    private static final long serialVersionUID = 1L;
 
 }

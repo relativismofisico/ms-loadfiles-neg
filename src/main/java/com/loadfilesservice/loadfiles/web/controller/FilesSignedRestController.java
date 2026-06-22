@@ -1,5 +1,6 @@
 package com.loadfilesservice.loadfiles.web.controller;
 
+import jakarta.validation.Valid;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -7,6 +8,14 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
+import com.loadfilesservice.loadfiles.application.ConstantVariables;
+import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
+import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
+import com.loadfilesservice.loadfiles.application.service.IFileSignedService;
+import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
+import com.loadfilesservice.loadfiles.domain.FileSigned;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -22,17 +31,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.loadfilesservice.loadfiles.application.ConstantVariables;
-import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
-import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
-import com.loadfilesservice.loadfiles.application.service.IFileSignedService;
-import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
-import com.loadfilesservice.loadfiles.domain.FileSigned;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/** Controlador REST para operaciones sobre archivos firmados. */
 @CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4600"})
 @RestController
 @RequestMapping("/filessigned")
@@ -44,10 +43,11 @@ public class FilesSignedRestController {
 
     private final IFileStorageService fileStorageService;
 
+    /** Retorna la lista de archivos firmados activos de una empresa. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping(value = "/listofcompanysignedfiles/{id}", produces = "application/json")
     public ResponseEntity<?> getListOfCompanySignedFiles(@PathVariable Long id) {
-        List<FileSigned> filesSigned = fileSignedService.findByCompanyAndState(id, 1L);
+        List<FileSigned> filesSigned = this.fileSignedService.findByCompanyAndState(id, 1L);
 
         if (filesSigned.isEmpty()) {
             log.error("[FilesSignedRestController][getListOfCompanySignedFiles][loadfiles]"
@@ -58,12 +58,13 @@ public class FilesSignedRestController {
         }
     }
 
+    /** Retorna el PDF firmado de una empresa como arreglo de bytes. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @PostMapping("/companyfilesignedpdf/{companyName}")
     public ResponseEntity<byte[]> getPdfCompanyFileSigned(@Valid @RequestBody FileSigned file, @PathVariable String companyName) {
         Optional<FileSigned> companyFileSignedFoundedOpt;
         try {
-            companyFileSignedFoundedOpt = fileSignedService.findById(file.getId());
+            companyFileSignedFoundedOpt = this.fileSignedService.findById(file.getId());
         } catch (Exception e) {
             log.error("[FilesSignedRestController][getPdfCompanyFileSigned][ms-loadfiles-neg] Error al intentar obtener el archivo", e);
             throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
@@ -74,7 +75,7 @@ public class FilesSignedRestController {
 
         Resource resource;
         try {
-            resource = fileStorageService.loadFile(companyFileSignedFounded.getFileName(),
+            resource = this.fileStorageService.loadFile(companyFileSignedFounded.getFileName(),
                     ConstantVariables.FILES_REGISTRY_SIGNED + "/" + companyName);
         } catch (MalformedURLException e) {
             log.error("[FilesSignedRestController][getPdfCompanyFileSigned][ms-loadfiles-neg] Error al intentar obtener el archivo: {}",

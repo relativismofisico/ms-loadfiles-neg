@@ -1,5 +1,9 @@
 package com.loadfilesservice.loadfiles.infraestrutura.security.config;
 
+import com.loadfilesservice.loadfiles.infraestrutura.security.handler.JwtAccessDeniedHandler;
+import com.loadfilesservice.loadfiles.infraestrutura.security.handler.JwtAuthenticationEntryPoint;
+import com.loadfilesservice.loadfiles.infraestrutura.security.jwt.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -10,12 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.loadfilesservice.loadfiles.infraestrutura.security.handler.JwtAccessDeniedHandler;
-import com.loadfilesservice.loadfiles.infraestrutura.security.handler.JwtAuthenticationEntryPoint;
-import com.loadfilesservice.loadfiles.infraestrutura.security.jwt.JwtAuthenticationFilter;
-
-import lombok.RequiredArgsConstructor;
-
+/** Configuración de seguridad HTTP de la aplicación. */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -35,9 +34,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth ->
                 auth.anyRequest().authenticated())
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(authenticationEntryPoint)
-                .accessDeniedHandler(accessDeniedHandler))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .authenticationEntryPoint(this.authenticationEntryPoint)
+                .accessDeniedHandler(this.accessDeniedHandler))
+            .addFilterBefore(this.jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
