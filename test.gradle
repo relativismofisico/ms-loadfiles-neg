@@ -3,7 +3,7 @@
  */
 
 sourceSets {
-   /* automatedTest {
+    automatedTest {
         java {
             srcDirs = ['src/automated-test/java']
             compileClasspath += sourceSets.main.output + sourceSets.test.output
@@ -12,7 +12,7 @@ sourceSets {
         resources {
             srcDirs = ['src/automated-test/resources']
         }
-    }*/
+    }
 
     architectureTest {
         java {
@@ -23,7 +23,7 @@ sourceSets {
         resources.srcDir file('src/architecture-test/resources')
     }
 }
-/*
+
 task automatedTest(type: Test) {
 
     description = 'Runs Karate acceptance tests'
@@ -71,7 +71,7 @@ task automatedTest(type: Test) {
             systemProperty k.toString(), v.toString()
         }
     }
-}*/
+}
 
 test {
     jvmArgs "-Xms128m", "-Xmx512m", "-XX:+DisableExplicitGC"
