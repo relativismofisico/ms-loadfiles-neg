@@ -28,15 +28,15 @@
          contenedor Servlet; no requieren cierre explícito aquí.
     ================================================================ -->
     <Match>
-        <Class name="com.loadfilesservice.loadfiles.security.handler.JwtAccessDeniedHandler"/>
+        <Class name="com.loadfilesservice.loadfiles.infraestrutura.security.handler.JwtAccessDeniedHandler"/>
         <Bug pattern="OS_OPEN_STREAM"/>
     </Match>
     <Match>
-        <Class name="com.loadfilesservice.loadfiles.security.handler.JwtAuthenticationEntryPoint"/>
+        <Class name="com.loadfilesservice.loadfiles.infraestrutura.security.handler.JwtAuthenticationEntryPoint"/>
         <Bug pattern="OS_OPEN_STREAM"/>
     </Match>
     <Match>
-        <Class name="com.loadfilesservice.loadfiles.security.jwt.JwtAuthenticationFilter"/>
+        <Class name="com.loadfilesservice.loadfiles.infraestrutura.security.jwt.JwtAuthenticationFilter"/>
         <Bug pattern="OS_OPEN_STREAM"/>
     </Match>
 
@@ -46,7 +46,7 @@
          Esta exclusión cubre casos en los que SpotBugs no lo detecte.
     ================================================================ -->
     <Match>
-        <Package name="com.loadfilesservice.loadfiles.entity"/>
+        <Package name="com.loadfilesservice.loadfiles.domain"/>
         <Bug pattern="SE_NO_SERIALVERSIONID"/>
     </Match>
 
@@ -55,7 +55,7 @@
          Los DTOs implementan Serializable con serialVersionUID declarado.
     ================================================================ -->
     <Match>
-        <Package name="com.loadfilesservice.loadfiles.dto"/>
+        <Package name="com.loadfilesservice.loadfiles.web.dto"/>
         <Bug pattern="SE_NO_SERIALVERSIONID"/>
     </Match>
 
@@ -66,7 +66,7 @@
          Los paths provienen de constantes internas, no de input externo directo.
     ================================================================ -->
     <Match>
-        <Class name="com.loadfilesservice.loadfiles.serviceImpl.FileStorageServiceImpl"/>
+        <Class name="com.loadfilesservice.loadfiles.infraestrutura.usecase.FileStorageServiceImpl"/>
         <Bug pattern="PT_RELATIVE_PATH_TRAVERSAL"/>
     </Match>
 
@@ -77,7 +77,7 @@
     ================================================================ -->
     <Match>
         <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
-        <Package name="com.loadfilesservice.loadfiles.security"/>
+        <Package name="com.loadfilesservice.loadfiles.infraestrutura.security"/>
     </Match>
 
     <!-- ================================================================
@@ -86,7 +86,7 @@
          de mutación aunque sean public static final.
     ================================================================ -->
     <Match>
-        <Class name="com.loadfilesservice.loadfiles.util.ConstantVariables"/>
+        <Class name="com.loadfilesservice.loadfiles.application.ConstantVariables"/>
         <Bug pattern="MS_SHOULD_BE_FINAL"/>
     </Match>
 
@@ -96,7 +96,7 @@
          asignado a null; la lógica es intencional por diseño.
     ================================================================ -->
     <Match>
-        <Class name="com.loadfilesservice.loadfiles.controller.SignController"/>
+        <Class name="com.loadfilesservice.loadfiles.web.controller.SignController"/>
         <Method name="saveSign"/>
         <Bug pattern="IP_PARAMETER_IS_DEAD_BUT_OVERWRITTEN"/>
     </Match>
@@ -109,7 +109,7 @@
          modificar la configuración de seguridad.
     ================================================================ -->
     <Match>
-        <Class name="com.loadfilesservice.loadfiles.security.jwt.JwtTokenValidator"/>
+        <Class name="com.loadfilesservice.loadfiles.infraestrutura.security.jwt.JwtTokenValidator"/>
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
 

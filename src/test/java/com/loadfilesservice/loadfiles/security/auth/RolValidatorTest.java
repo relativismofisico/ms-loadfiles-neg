@@ -1,6 +1,7 @@
 package com.loadfilesservice.loadfiles.security.auth;
 
-import com.loadfilesservice.loadfiles.security.config.SecurityProperties;
+import com.loadfilesservice.loadfiles.infraestrutura.security.auth.RolValidator;
+import com.loadfilesservice.loadfiles.infraestrutura.security.config.SecurityProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

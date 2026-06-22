@@ -1,5 +1,6 @@
 package com.loadfilesservice.loadfiles.security.jwt;
 
+import com.loadfilesservice.loadfiles.infraestrutura.security.jwt.JwtTokenValidator;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
