@@ -2,7 +2,13 @@
  * Copyright (c). Todos los derechos reservados.
  */
 def jacocoExcludes = [
-
+    '**/loadfiles/domain/**',
+    '**/*DTORequest.class',
+    '**/*DTOResponse.class',
+    '**/LoadfilesApplication.class',
+    '**/config/SecurityConfig.class',
+    '**/config/SecurityProperties*.class',
+    '**/application/ConstantVariables.class',
 ]
 
 jacocoTestReport {

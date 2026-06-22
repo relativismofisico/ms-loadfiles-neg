@@ -40,7 +40,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-sec" +
+            "urity")
 
     // JWT (misma librería que ms-security)
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")
@@ -64,6 +65,10 @@ dependencies {
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    // Spock Framework
+    testImplementation("org.apache.groovy:groovy")
+    testImplementation("org.spockframework:spock-core:2.3-groovy-4.0")
+    testImplementation("org.spockframework:spock-spring:2.3-groovy-4.0")
     architectureTestImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
 }
 
