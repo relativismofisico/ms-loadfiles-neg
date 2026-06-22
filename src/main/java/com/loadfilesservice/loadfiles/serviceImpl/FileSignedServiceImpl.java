@@ -76,8 +76,11 @@ public class FileSignedServiceImpl implements IFileSignedService {
 		try {
 			return fileSignedDao.save(fileSignedBase);
 		} catch (Exception e) {
-			log.error("[FileSignedServiceImpl][saveSignedFile][loadfiles] Error al intentar guardar el registro del archivo en la base de datos: {}", fileName, e);
-			throw new InternalServerErrorException("Error al intentar guardar el registro del archivo en la base de datos: " + fileName, e);
+			log.error("[FileSignedServiceImpl][saveSignedFile][loadfiles] "
+					+ "Error al intentar guardar el registro del archivo en la base de datos: {}",
+					fileName, e);
+			throw new InternalServerErrorException(
+					"Error al intentar guardar el registro del archivo en la base de datos: " + fileName, e);
 		}
 	}
 

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import com.loadfilesservice.loadfiles.entity.FileSigned;
 
-public interface IFileSignedDao extends JpaRepository<FileSigned, Long>{
+public interface IFileSignedDao extends JpaRepository<FileSigned, Long> {
 	
 	@Query(value =  "select * from db_companies.files_signed where company_ide = ?1 and state = ?2", nativeQuery = true)
 	List<FileSigned> findByCompanyAndState(Long companyId, Long state);

@@ -43,7 +43,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@CrossOrigin(origins = { "http://localhost:4300", "http://localhost:4400" })
+@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4400"})
 @RestController
 @RequestMapping("/filesign")
 @RequiredArgsConstructor
@@ -65,7 +65,8 @@ public class FilesToSignRestController {
 		List<FileToSign> filesToSign = fileToSignService.findByCompanyFileTypeAndState(10L, 1L);
 
 		if (filesToSign.isEmpty()) {
-			log.error("[FilesToSignRestController][getFileToSignCompanyRegistry][ms-loadfiles-neg] No hay archivos de registro de empresa para firmar en la BD");
+			log.error("[FilesToSignRestController][getFileToSignCompanyRegistry][ms-loadfiles-neg] "
+					+ "No hay archivos de registro de empresa para firmar en la BD");
 			throw new ResourceNotFoundException("No hay archivos de registro de empresa para firmar en la BD");
 		} else {
 			List<FileToSignDTOResponse> filesToSignDTO = filesToSign.stream()

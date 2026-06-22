@@ -26,7 +26,7 @@ import com.loadfilesservice.loadfiles.service.ISignService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@CrossOrigin(origins = { "http://localhost:4300", "http://localhost:4400" })
+@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4400"})
 @RestController
 @RequestMapping("/signs")
 @RequiredArgsConstructor
@@ -50,11 +50,8 @@ public class SignController {
             @RequestParam("ipLoad") String ipLoad,
             @RequestParam("companyName") String companyName) {
 
-        if (Long.valueOf(0L).equals(user)) {
-            user = null;
-        }
-
-        Sign savedSign = signService.replaceSign(file, company, user, ipLoad, companyName);
+        Long effectiveUser = Long.valueOf(0L).equals(user) ? null : user;
+        Sign savedSign = signService.replaceSign(file, company, effectiveUser, ipLoad, companyName);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedSign);
     }
     

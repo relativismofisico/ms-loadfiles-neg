@@ -1,6 +1,6 @@
 package com.loadfilesservice.loadfiles.util;
 
-public class ConstantVariables {
+public final class ConstantVariables {
 
 	public static final String PATH_UPLOADS = "uploadfiles";
 	public static final String FILES_REGISTRY_SIGN = "files_to_sign/company_registry";

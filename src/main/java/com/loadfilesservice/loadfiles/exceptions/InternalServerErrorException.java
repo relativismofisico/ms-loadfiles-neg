@@ -3,6 +3,7 @@ package com.loadfilesservice.loadfiles.exceptions;
 public class InternalServerErrorException extends RuntimeException {
 
     public InternalServerErrorException() {
+        super();
     }
 
     public InternalServerErrorException(String message) {

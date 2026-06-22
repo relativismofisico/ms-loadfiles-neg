@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.loadfilesservice.loadfiles.entity.Sign;
 
-public interface ISignDao extends JpaRepository<Sign, Long>{
+public interface ISignDao extends JpaRepository<Sign, Long> {
 	
 	@Query("SELECT s FROM Sign s WHERE s.company = :company AND s.state = 1")
     Optional<Sign> findActiveSignByCompany(@Param("company") Long company);

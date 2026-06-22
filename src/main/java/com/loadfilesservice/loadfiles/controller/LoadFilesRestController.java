@@ -42,7 +42,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@CrossOrigin(origins = { "http://localhost:4300", "http://localhost:4600" })
+@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4600"})
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -76,7 +76,7 @@ public class LoadFilesRestController {
 	}
 
 	@PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
-	@PostMapping(value = "/companyfile/upload/file/{id}")
+	@PostMapping("/companyfile/upload/file/{id}")
 	public ResponseEntity<?> getFile(@Valid @RequestBody CompanyFileType fileType, @PathVariable Long id) {
 
 		Map<String, Object> response = new HashMap<>();
@@ -141,9 +141,12 @@ public class LoadFilesRestController {
 		try {
 			fileGetted = resource.getFile();
 		} catch (IOException e) {
-			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo del recurso: {}",
+			log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg]"
+					+ " Error al intentar obtener el archivo del recurso: {}",
 					companyFileFounded.getFileName(), e);
-			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileFounded.getFileName(), e);
+			throw new InternalServerErrorException(
+					"Error al intentar obtener el archivo del recurso: "
+							+ companyFileFounded.getFileName(), e);
 		}
 
 		byte[] pdfBytes;

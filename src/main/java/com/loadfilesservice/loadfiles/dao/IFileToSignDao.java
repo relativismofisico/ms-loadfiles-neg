@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import com.loadfilesservice.loadfiles.entity.FileToSign;
 
-public interface IFileToSignDao extends JpaRepository<FileToSign, Long>{
+public interface IFileToSignDao extends JpaRepository<FileToSign, Long> {
 	
 	@Query(value =  "select * from db_companies.files_to_sign where file_type_ide = ?1 and state = ?2", nativeQuery = true)
 	List<FileToSign> findByCompanyFileTypeAndState(Long companyFileType, Long state);
