@@ -3,6 +3,7 @@ package com.loadfilesservice.loadfiles.exceptions;
 public class ResourceNotFoundException extends RuntimeException {
 
     public ResourceNotFoundException() {
+        super();
     }
 
     public ResourceNotFoundException(String message) {

@@ -36,9 +36,8 @@ public class FileStorageServiceImpl implements IFileStorageService {
 
 	@Override
 	public String copyFile(MultipartFile file, String path) throws IOException {
-		String originalName = file.getOriginalFilename() != null
-				? file.getOriginalFilename().replace(" ", "")
-				: "file";
+		String rawName = file.getOriginalFilename();
+		String originalName = rawName != null ? rawName.replace(" ", "") : "file";
 		String fileName = UUID.randomUUID() + "_" + originalName;
 		Path pathFile = getPath(fileName, path);
 

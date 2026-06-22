@@ -8,7 +8,7 @@ import org.springframework.data.repository.CrudRepository;
 import com.loadfilesservice.loadfiles.entity.CompanyFile;
 import com.loadfilesservice.loadfiles.entity.CompanyFileType;
 
-public interface ICompanyFileDao extends CrudRepository<CompanyFile, Long>{
+public interface ICompanyFileDao extends CrudRepository<CompanyFile, Long> {
 
 	@Query("select f from CompanyFile f where f.company=?1 and f.companyFileType=?2")
 	List<CompanyFile> findByCompanyAndCompanyFileType(Long companyId, CompanyFileType companyFileType);

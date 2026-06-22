@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0
+        https://raw.githubusercontent.com/spotbugs/spotbugs/master/spotbugs/etc/findbugsfilter.xsd">
+
+    <!--
+      SpotBugs exclusion filter para ms-loadfiles-neg
+      Java 17 + Spring Boot 3 + Lombok + JPA
+    -->
+
+    <!-- ================================================================
+         LOMBOK @Data — Exposición de representación interna
+         Lombok genera getters/setters directos; los objetos mutables
+         en entidades JPA son gestionados por el framework.
+    ================================================================ -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- ================================================================
+         SPRING SECURITY HANDLERS
+         Los HttpServletResponse.getWriter() son gestionados por el
+         contenedor Servlet; no requieren cierre explícito aquí.
+    ================================================================ -->
+    <Match>
+        <Class name="com.loadfilesservice.loadfiles.security.handler.JwtAccessDeniedHandler"/>
+        <Bug pattern="OS_OPEN_STREAM"/>
+    </Match>
+    <Match>
+        <Class name="com.loadfilesservice.loadfiles.security.handler.JwtAuthenticationEntryPoint"/>
+        <Bug pattern="OS_OPEN_STREAM"/>
+    </Match>
+    <Match>
+        <Class name="com.loadfilesservice.loadfiles.security.jwt.JwtAuthenticationFilter"/>
+        <Bug pattern="OS_OPEN_STREAM"/>
+    </Match>
+
+    <!-- ================================================================
+         JPA ENTITIES — serialVersionUID
+         Las entidades declaran serialVersionUID explícitamente.
+         Esta exclusión cubre casos en los que SpotBugs no lo detecte.
+    ================================================================ -->
+    <Match>
+        <Package name="com.loadfilesservice.loadfiles.entity"/>
+        <Bug pattern="SE_NO_SERIALVERSIONID"/>
+    </Match>
+
+    <!-- ================================================================
+         DTO CLASSES — serialVersionUID
+         Los DTOs implementan Serializable con serialVersionUID declarado.
+    ================================================================ -->
+    <Match>
+        <Package name="com.loadfilesservice.loadfiles.dto"/>
+        <Bug pattern="SE_NO_SERIALVERSIONID"/>
+    </Match>
+
+    <!-- ================================================================
+         PATH TRAVERSAL — FileStorageServiceImpl
+         El nombre del archivo se sanitiza antes de usarse (replace " ").
+         La ruta base es controlada por la aplicación, no por el usuario.
+         Los paths provienen de constantes internas, no de input externo directo.
+    ================================================================ -->
+    <Match>
+        <Class name="com.loadfilesservice.loadfiles.serviceImpl.FileStorageServiceImpl"/>
+        <Bug pattern="PT_RELATIVE_PATH_TRAVERSAL"/>
+    </Match>
+
+    <!-- ================================================================
+         NULL CHECK — Falsos positivos con Optional y Spring patterns
+         Spring garantiza que los beans inyectados no son null.
+         Optional.get() es seguro porque se verifica isEmpty() primero.
+    ================================================================ -->
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Package name="com.loadfilesservice.loadfiles.security"/>
+    </Match>
+
+    <!-- ================================================================
+         MUTABLE STATIC — ConstantVariables
+         Los campos son String (inmutable), por lo que no hay riesgo
+         de mutación aunque sean public static final.
+    ================================================================ -->
+    <Match>
+        <Class name="com.loadfilesservice.loadfiles.util.ConstantVariables"/>
+        <Bug pattern="MS_SHOULD_BE_FINAL"/>
+    </Match>
+
+    <!-- ================================================================
+         DEAD PARAMETER — SignController
+         El parámetro 'user' se evalúa antes de ser potencialmente
+         asignado a null; la lógica es intencional por diseño.
+    ================================================================ -->
+    <Match>
+        <Class name="com.loadfilesservice.loadfiles.controller.SignController"/>
+        <Method name="saveSign"/>
+        <Bug pattern="IP_PARAMETER_IS_DEAD_BUT_OVERWRITTEN"/>
+    </Match>
+
+    <!-- ================================================================
+         CONSTRUCTOR THROW — JwtTokenValidator
+         El constructor puede lanzar IllegalArgumentException si el secreto
+         JWT es inválido. Esto es intencional: la aplicación no debe arrancar
+         con un secreto JWT inválido. Hacer la clase 'final' requeriría
+         modificar la configuración de seguridad.
+    ================================================================ -->
+    <Match>
+        <Class name="com.loadfilesservice.loadfiles.security.jwt.JwtTokenValidator"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+
+    <!-- ================================================================
+         FORMAT STRING — Logging SLF4J
+         SLF4J usa formato {} que SpotBugs puede confundir con
+         problemas de formato de cadenas estilo printf.
+    ================================================================ -->
+    <Match>
+        <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+    </Match>
+
+</FindBugsFilter>

@@ -1,12 +1,17 @@
 plugins {
+    id 'pmd'
     id 'java'
+    id 'groovy'
     id 'jacoco'
-    id 'org.springframework.boot' version '3.2.0'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'checkstyle'
+    id 'org.sonarqube' version '5.1.0.4882'
+    id 'com.github.spotbugs' version '6.0.26'
+    id 'org.springframework.boot' version '3.3.4'
+    id 'io.spring.dependency-management' version '1.1.6'
 }
 
-group = "com.loadfilesservice"
-version = "0.0.1-SNAPSHOT"
+group = "com.loadfiles"
+version = "1.0.0"
 description = "Load files microservice for karonte"
 
 java {
@@ -58,4 +63,27 @@ test {
     finalizedBy jacocoTestReport // siempre genera reporte después de los tests
 
 }
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "ms-loadfiles-neg"
+        property "sonar.projectName", "ms-loadfiles-neg"
+        property "sonar.projectVersion", version
+        property "sonar.sources", "src/main/java"
+        property "sonar.tests", "src/test/java"
+        property "sonar.java.source", "17"
+        property "sonar.sourceEncoding", "UTF-8"
+        property "sonar.coverage.jacoco.xmlReportPaths",
+                "build/reports/jacoco/test/jacocoTestReport.xml"
+        property "sonar.java.checkstyle.reportPaths",
+                "build/reports/checkstyle/main.xml"
+        property "sonar.java.pmd.reportPaths",
+                "build/reports/pmd/main.xml"
+        property "sonar.java.spotbugs.reportPaths",
+                "build/reports/spotbugs/main.xml"
+        property "sonar.coverage.exclusions",
+                "**/entity/**,**/dto/**,**/exceptions/ApiErrorResponse.java,**/LoadfilesApplication.java"
+    }
+}
+
 apply from: "${rootProject.projectDir}/coverage.gradle"

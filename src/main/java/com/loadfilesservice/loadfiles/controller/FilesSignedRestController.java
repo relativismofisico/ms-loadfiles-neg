@@ -33,7 +33,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@CrossOrigin(origins = { "http://localhost:4300", "http://localhost:4600" })
+@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4600"})
 @RestController
 @RequestMapping("/filessigned")
 @RequiredArgsConstructor
@@ -50,7 +50,8 @@ public class FilesSignedRestController {
 		List<FileSigned> filesSigned = fileSignedService.findByCompanyAndState(id, 1L);
 
 		if (filesSigned.isEmpty()) {
-			log.error("[FilesSignedRestController][getListOfCompanySignedFiles][loadfiles] No hay archivos firmados de la empresa en la BD");
+			log.error("[FilesSignedRestController][getListOfCompanySignedFiles][loadfiles]"
+					+ " No hay archivos firmados de la empresa en la BD");
 			throw new ResourceNotFoundException("No hay archivos firmados de la empresa en la BD");
 		} else {
 			return ResponseEntity.status(HttpStatus.OK).body(filesSigned);
@@ -85,18 +86,24 @@ public class FilesSignedRestController {
 		try {
 			fileGetted = resource.getFile();
 		} catch (IOException e) {
-			log.error("[FilesSignedRestController][getPdfCompanyFileSigned][ms-loadfiles-neg] Error al intentar obtener el archivo del recurso: {}",
+			log.error("[FilesSignedRestController][getPdfCompanyFileSigned][ms-loadfiles-neg] "
+					+ "Error al intentar obtener el archivo del recurso: {}",
 					companyFileSignedFounded.getFileName(), e);
-			throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + companyFileSignedFounded.getFileName(), e);
+			throw new InternalServerErrorException(
+					"Error al intentar obtener el archivo del recurso: "
+							+ companyFileSignedFounded.getFileName(), e);
 		}
 
 		byte[] pdfBytes;
 		try {
 			pdfBytes = Files.readAllBytes(fileGetted.toPath());
 		} catch (IOException e) {
-			log.error("[FilesSignedRestController][getPdfCompanyFileSigned][ms-loadfiles-neg] Error al intentar pasar a bytes del archivo: {}",
+			log.error("[FilesSignedRestController][getPdfCompanyFileSigned][ms-loadfiles-neg] "
+					+ "Error al intentar pasar a bytes del archivo: {}",
 					companyFileSignedFounded.getFileName(), e);
-			throw new InternalServerErrorException("Error al intentar pasar a bytes del archivo: " + companyFileSignedFounded.getFileName(), e);
+			throw new InternalServerErrorException(
+					"Error al intentar pasar a bytes del archivo: "
+							+ companyFileSignedFounded.getFileName(), e);
 		}
 
 		HttpHeaders headers = new HttpHeaders();

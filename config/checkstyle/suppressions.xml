@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<!--
+  Supresiones Checkstyle para ms-loadfiles-neg.
+  Cada supresión debe documentar el motivo técnico.
+-->
+<suppressions>
+
+    <!--
+      MOTIVO: El paquete 'serviceImpl' contiene una letra mayúscula ('I')
+      que viola la convención PackageName (^[a-z]+(\.[a-z][a-z0-9]*)*$).
+      Esta es una decisión arquitectónica pre-existente. Renombrar el
+      paquete requiere coordinación de classpath en producción.
+      PENDIENTE: migrar a 'serviceimpl' en refactoring planificado.
+    -->
+    <suppress checks="ConstantName"
+              files="serviceImpl[\\/].*\.java"
+              message="serialVersionUID"/>
+
+    <suppress checks="PackageName"
+              files="serviceImpl[\\/].*\.java"/>
+
+    <!--
+      MOTIVO: serialVersionUID es el nombre canónico exigido por el
+      protocolo Java Serializable (ObjectStreamClass). No puede
+      renombrarse a SERIAL_VERSION_UID sin romper la deserialización.
+      La convención UPPER_SNAKE_CASE de ConstantName no aplica a
+      este campo especial reconocido por la JVM.
+    -->
+    <suppress checks="ConstantName"
+              message="'serialVersionUID'"/>
+
+</suppressions>

@@ -3,6 +3,7 @@ package com.loadfilesservice.loadfiles.exceptions;
 public class BadRequestException extends RuntimeException {
 
     public BadRequestException() {
+        super();
     }
 
     public BadRequestException(String message) {
