@@ -1,176 +1,161 @@
 <?xml version="1.0"?>
 <!DOCTYPE module PUBLIC
-    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
-    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
-  Configuración Checkstyle empresarial para ms-loadfiles-neg
-  Compatible con Java 17, Spring Boot 3, Lombok.
+  Ruleset compatible con Checkstyle 10.17.0 + Gradle 8.x
+  Basado en Google Java Style - reglas de bajo ruido.
 -->
 <module name="Checker">
-    <property name="severity" value="error"/>
-    <property name="fileExtensions" value="java"/>
-    <property name="charset" value="UTF-8"/>
+  <property name="severity" value="error"/>
+  <property name="fileExtensions" value="java"/>
 
-    <!-- Permite suprimir reglas con @SuppressWarnings -->
-    <module name="SuppressWarningsFilter"/>
+  <!-- ══ Checks a nivel de archivo ═════════════════════════════════════ -->
+  <module name="NewlineAtEndOfFile"/>
 
-    <!-- Archivo de supresiones específicas (opcional) -->
-    <module name="SuppressionFilter">
-        <property name="file" value="${config_loc}/suppressions.xml" default=""/>
-        <property name="optional" value="true"/>
+  <module name="FileLength">
+    <property name="max" value="1200"/>
+  </module>
+
+  <module name="FileTabCharacter">
+    <property name="eachLine" value="true"/>
+  </module>
+
+  <module name="LineLength">
+    <property name="max" value="180"/>
+    <property name="ignorePattern" value="^package.*|^import.*|^ *\* *https?://"/>
+  </module>
+
+  <!-- ══ Checks a nivel de árbol sintáctico ════════════════════════════ -->
+  <module name="TreeWalker">
+
+    <module name="OuterTypeFilename"/>
+    <module name="AvoidStarImport"/>
+    <module name="RedundantImport"/>
+    <module name="UnusedImports"/>
+
+    <module name="CustomImportOrder">
+      <property name="customImportOrderRules"
+                value="STANDARD_JAVA_PACKAGE###SPECIAL_IMPORTS###THIRD_PARTY_PACKAGE"/>
+      <property name="standardPackageRegExp" value="^(java|javax|jakarta)\."/>
+      <property name="specialImportsRegExp" value="^cl\.bank\."/>
+      <property name="separateLineBetweenGroups" value="true"/>
+      <property name="sortImportsInGroupAlphabetically" value="true"/>
     </module>
 
-    <!-- Toda clase Java debe terminar con una línea nueva -->
-    <module name="NewlineAtEndOfFile">
-        <property name="lineSeparator" value="lf_cr_crlf"/>
+    <module name="EmptyLineSeparator">
+      <property name="allowNoEmptyLineBetweenFields" value="true"/>
     </module>
 
-    <!-- Longitud máxima de archivo -->
-    <module name="FileLength">
-        <property name="max" value="600"/>
+    <module name="AvoidInlineConditionals"/>
+
+    <module name="AnnotationLocation">
+      <property name="allowSamelineSingleParameterlessAnnotation" value="true"/>
+      <property name="allowSamelineParameterizedAnnotation" value="false"/>
+      <property name="allowSamelineMultipleAnnotations" value="false"/>
     </module>
 
-    <!-- Longitud máxima de línea (nivel Checker en Checkstyle 10.x) -->
-    <module name="LineLength">
-        <property name="max" value="150"/>
-        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+    <module name="MissingJavadocType">
+      <property name="scope" value="public"/>
     </module>
 
-    <module name="TreeWalker">
-
-        <!-- Permite usar @SuppressWarnings("checkstyle:...") -->
-        <module name="SuppressWarningsHolder"/>
-
-        <!-- =============================================================
-             IMPORTS
-        ============================================================== -->
-
-        <!-- Prohíbe importaciones comodín (import paquete.*) -->
-        <module name="AvoidStarImport"/>
-
-        <!-- Detecta importaciones no utilizadas -->
-        <module name="UnusedImports"/>
-
-        <!-- Detecta importaciones duplicadas -->
-        <module name="RedundantImport"/>
-
-        <!-- Prohíbe el uso de APIs internas del JDK o contenedores -->
-        <module name="IllegalImport">
-            <property name="illegalPkgs" value="org.apache.tomcat, sun, com.sun"/>
-        </module>
-
-        <!-- =============================================================
-             CONVENCIONES DE NOMBRES
-        ============================================================== -->
-
-        <module name="PackageName">
-            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
-        </module>
-
-        <!-- Tipos (clases, interfaces, enums, records): PascalCase -->
-        <module name="TypeName"/>
-
-        <!-- Constantes: UPPER_SNAKE_CASE -->
-        <module name="ConstantName"/>
-
-        <!-- Variables locales: camelCase -->
-        <module name="LocalVariableName"/>
-
-        <!-- Campos de instancia: camelCase -->
-        <module name="MemberName"/>
-
-        <!-- Métodos: camelCase -->
-        <module name="MethodName"/>
-
-        <!-- Parámetros: camelCase -->
-        <module name="ParameterName"/>
-
-        <!-- Variables estáticas no constantes: camelCase -->
-        <module name="StaticVariableName"/>
-
-        <!-- Variables en bloques catch: camelCase de una sola letra permitida -->
-        <module name="CatchParameterName"/>
-
-        <!-- =============================================================
-             TAMAÑOS
-        ============================================================== -->
-
-        <!-- Longitud máxima de método -->
-        <module name="MethodLength">
-            <property name="max" value="200"/>
-        </module>
-
-        <!-- Máximo de parámetros por método -->
-        <module name="ParameterNumber">
-            <property name="max" value="15"/>
-        </module>
-
-        <!-- =============================================================
-             ESPACIOS EN BLANCO
-        ============================================================== -->
-
-        <!-- Verifica espaciado correcto en genéricos -->
-        <module name="GenericWhitespace"/>
-
-        <!-- Espacio requerido después de: COMMA, SEMI, TYPECAST, IF, ELSE, WHILE, DO, FOR -->
-        <module name="WhitespaceAfter"/>
-
-        <!-- Sin espacio antes de: punto, coma, punto y coma -->
-        <module name="NoWhitespaceBefore"/>
-
-        <!-- Sin espacio después de: operadores unarios, punto, índice de array -->
-        <module name="NoWhitespaceAfter"/>
-
-        <!-- Sin padding dentro de paréntesis: f(a) no f( a ) -->
-        <module name="ParenPad"/>
-
-        <!-- =============================================================
-             BLOQUES
-        ============================================================== -->
-
-        <!-- Prohíbe bloques anidados innecesarios -->
-        <module name="AvoidNestedBlocks"/>
-
-        <!-- Bloques vacíos deben contener al menos un comentario -->
-        <module name="EmptyBlock">
-            <property name="option" value="text"/>
-        </module>
-
-        <!-- Llave de apertura al final de la línea -->
-        <module name="LeftCurly"/>
-
-        <!-- Todo if/else/for/while/do debe tener llaves -->
-        <module name="NeedBraces"/>
-
-        <!-- } else / } catch / } finally en la misma línea que la llave -->
-        <module name="RightCurly"/>
-
-        <!-- =============================================================
-             CODIFICACIÓN
-        ============================================================== -->
-
-        <!-- Sin punto y coma vacío (sentencia vacía) -->
-        <module name="EmptyStatement"/>
-
-        <!-- equals() y hashCode() deben implementarse juntos -->
-        <module name="EqualsHashCode"/>
-
-        <!-- Comparación de literales String con == no permitida -->
-        <module name="StringLiteralEquality"/>
-
-        <!-- Declaración de arrays: String[] args, no String args[] -->
-        <module name="ArrayTypeStyle"/>
-
-        <!-- Literales long deben usar L mayúscula, no l minúscula -->
-        <module name="UpperEll"/>
-
-        <!-- =============================================================
-             MODIFICADORES
-        ============================================================== -->
-
-        <!-- Orden correcto: public protected private abstract static final... -->
-        <module name="ModifierOrder"/>
-
+    <module name="MissingJavadocMethod">
+      <property name="scope" value="public"/>
+      <property name="allowedAnnotations"
+                value="Override,Test,BeforeEach,AfterEach,BeforeAll,AfterAll,ParameterizedTest,Bean"/>
     </module>
+
+    <module name="JavadocVariable">
+      <property name="tokens" value="VARIABLE_DEF"/>
+      <property name="scope" value="public"/>
+    </module>
+
+    <module name="FinalClass"/>
+    <module name="HideUtilityClassConstructor"/>
+    <module name="EqualsHashCode"/>
+
+    <module name="IllegalTokenText">
+      <property name="tokens" value="STRING_LITERAL, CHAR_LITERAL"/>
+      <property name="format"
+                value="\\u00(09|0A|0B|0C|0D)|\\u0085|\\u2028|\\u2029"/>
+      <property name="message"
+                value="Avoid escaped control characters in literals; use visible escaped forms."/>
+    </module>
+
+    <module name="MethodLength">
+      <property name="max" value="120"/>
+    </module>
+
+    <module name="ParameterNumber">
+      <property name="max" value="7"/>
+    </module>
+
+    <module name="MissingSwitchDefault"/>
+    <module name="FallThrough"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="MultipleVariableDeclarations"/>
+    <module name="EmptyStatement"/>
+    <module name="RedundantModifier"/>
+    <module name="DefaultComesLast"/>
+    <module name="UpperEll"/>
+    <module name="ArrayTypeStyle"/>
+
+    <module name="RequireThis">
+      <property name="checkFields" value="true"/>
+      <property name="checkMethods" value="false"/>
+    </module>
+
+    <module name="UnnecessaryParentheses"/>
+    <module name="TodoComment"/>
+    <module name="TrailingComment"/>
+
+    <module name="SeparatorWrap">
+      <property name="option" value="eol"/>
+      <property name="tokens" value="COMMA,SEMI,ELLIPSIS,ARRAY_DECLARATOR"/>
+    </module>
+
+    <module name="OperatorWrap">
+      <property name="option" value="nl"/>
+    </module>
+
+    <module name="ConstantName"/>
+    <module name="LocalVariableName"/>
+    <module name="ParameterName"/>
+
+    <module name="MethodName">
+      <property name="format" value="^[a-z][a-zA-Z0-9_]*$"/>
+    </module>
+
+    <module name="TypeName"/>
+    <module name="NeedBraces"/>
+    <module name="WhitespaceAround"/>
+    <module name="NoWhitespaceBefore"/>
+    <module name="OneStatementPerLine"/>
+    <module name="ModifierOrder"/>
+    <module name="EmptyBlock"/>
+    <module name="LeftCurly"/>
+    <module name="RightCurly"/>
+
+    <!-- Supresiones por xpath para ArchitectureTest.java -->
+    <module name="SuppressionXpathSingleFilter">
+      <property name="checks" value="ConstantName"/>
+      <property name="files" value=".*[/\\\\]ArchitectureTest\.java$"/>
+    </module>
+
+    <!-- Supresiones para clases Utility con @UtilityClass (Lombok genera constructor privado) -->
+    <module name="SuppressionXpathSingleFilter">
+      <property name="checks" value="HideUtilityClassConstructor"/>
+      <property name="files" value=".*[/\\\\](FormatoUtil|MimeTypeUtil|NombreArchivoUtil|MsInstruccionesUtilApplication)\.java$"/>
+    </module>
+
+  </module>
+
+  <!-- Supresión de FileLength para ArchitectureTest a nivel Checker -->
+  <module name="SuppressionSingleFilter">
+    <property name="checks" value="FileLength"/>
+    <property name="files" value=".*[/\\\\]ArchitectureTest\.java$"/>
+  </module>
+
 </module>

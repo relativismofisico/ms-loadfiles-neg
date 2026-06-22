@@ -1,5 +1,6 @@
 package com.loadfilesservice.loadfiles.web.controller;
 
+import jakarta.validation.Valid;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -9,6 +10,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.loadfilesservice.loadfiles.application.ConstantVariables;
+import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
+import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
+import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
+import com.loadfilesservice.loadfiles.application.service.ICompanyFileService;
+import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
+import com.loadfilesservice.loadfiles.domain.CompanyFile;
+import com.loadfilesservice.loadfiles.domain.CompanyFileType;
+import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTORequest;
+import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTOResponse;
+import com.loadfilesservice.loadfiles.web.dto.Converter;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -26,24 +42,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loadfilesservice.loadfiles.application.ConstantVariables;
-import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
-import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
-import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
-import com.loadfilesservice.loadfiles.application.service.ICompanyFileService;
-import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
-import com.loadfilesservice.loadfiles.domain.CompanyFile;
-import com.loadfilesservice.loadfiles.domain.CompanyFileType;
-import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTORequest;
-import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTOResponse;
-import com.loadfilesservice.loadfiles.web.dto.Converter;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/** Controlador REST para la carga y consulta de archivos de empresa. */
 @CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4600"})
 @RestController
 @RequestMapping("/api")
@@ -59,6 +58,7 @@ public class LoadFilesRestController {
 
     private final ObjectMapper objectMapper;
 
+    /** Sube un archivo de empresa y registra el cambio en la base de datos. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'carga')")
     @PostMapping(value = "/companyfile/upload", produces = "application/json")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile newfile,
@@ -67,15 +67,15 @@ public class LoadFilesRestController {
         Map<String, Object> response = new HashMap<>();
         CompanyFileDTORequest companyFileDTO;
         try {
-            companyFileDTO = objectMapper.readValue(jsonCompanyFile, CompanyFileDTORequest.class);
+            companyFileDTO = this.objectMapper.readValue(jsonCompanyFile, CompanyFileDTORequest.class);
         } catch (JsonProcessingException e) {
             log.error("[LoadFilesRestController][uploadFile][loadfiles] Error al parsear el JSON del archivo", e);
             throw new BadRequestException("El formato del JSON de información del archivo es inválido");
         }
 
         if (!newfile.isEmpty()) {
-            CompanyFile companyFileBase = converter.companyFileDTOtoCompanyFile(companyFileDTO);
-            CompanyFile savedFile = companyFileService.replaceCompanyFile(newfile, companyFileBase);
+            CompanyFile companyFileBase = this.converter.companyFileDTOtoCompanyFile(companyFileDTO);
+            CompanyFile savedFile = this.companyFileService.replaceCompanyFile(newfile, companyFileBase);
 
             log.info("[LoadFilesRestController][uploadFile][loadfiles] Archivo guardado: {}", savedFile);
 
@@ -85,6 +85,7 @@ public class LoadFilesRestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /** Retorna el nombre del archivo activo de una empresa por tipo. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @PostMapping("/companyfile/upload/file/{id}")
     public ResponseEntity<?> getFile(@Valid @RequestBody CompanyFileType fileType, @PathVariable Long id) {
@@ -93,7 +94,7 @@ public class LoadFilesRestController {
 
         List<CompanyFile> listCompanyFile;
         try {
-            listCompanyFile = companyFileService.findByCompanyAndCompanyFileType(id, fileType);
+            listCompanyFile = this.companyFileService.findByCompanyAndCompanyFileType(id, fileType);
         } catch (Exception e) {
             log.error("[LoadFilesRestController][getFile][loadfiles] Error al intentar obtener el archivo", e);
             throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
@@ -107,29 +108,31 @@ public class LoadFilesRestController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    /** Retorna el listado de archivos activos de una empresa. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping(value = "/listofcompanyfiles/{id}", produces = "application/json")
     public ResponseEntity<?> getListOfCompanyFiles(@PathVariable Long id) {
-        List<CompanyFile> companyFiles = companyFileService.findByCompanyAndState(id, 1L);
+        List<CompanyFile> companyFiles = this.companyFileService.findByCompanyAndState(id, 1L);
 
         if (companyFiles.isEmpty()) {
             log.error("[LoadFilesRestController][getListOfCompanyFiles][loadfiles] No hay archivos de la empresa en la BD");
             throw new ResourceNotFoundException("No hay archivos de la empresa en la BD");
         } else {
             List<CompanyFileDTOResponse> companyFilesDTO = companyFiles.stream()
-                    .map(converter::companyFileToDTO)
+                    .map(this.converter::companyFileToDTO)
                     .toList();
 
             return ResponseEntity.status(HttpStatus.OK).body(companyFilesDTO);
         }
     }
 
+    /** Retorna el PDF de un archivo de empresa como arreglo de bytes. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @PostMapping("/companyfilepdf")
     public ResponseEntity<byte[]> getPdfCompanyFile(@Valid @RequestBody CompanyFile file) {
         Optional<CompanyFile> companyFileFoundedOpt;
         try {
-            companyFileFoundedOpt = companyFileService.findById(file.getId());
+            companyFileFoundedOpt = this.companyFileService.findById(file.getId());
         } catch (Exception e) {
             log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo", e);
             throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
@@ -140,7 +143,7 @@ public class LoadFilesRestController {
 
         Resource resource;
         try {
-            resource = fileStorageService.loadFile(companyFileFounded.getFileName(), ConstantVariables.PATH_UPLOADS);
+            resource = this.fileStorageService.loadFile(companyFileFounded.getFileName(), ConstantVariables.PATH_UPLOADS);
         } catch (MalformedURLException e) {
             log.error("[LoadFilesRestController][getPdfCompanyFile][ms-loadfiles-neg] Error al intentar obtener el archivo: {}",
                     companyFileFounded.getFileName());

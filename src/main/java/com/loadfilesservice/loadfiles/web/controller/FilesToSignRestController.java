@@ -1,5 +1,6 @@
 package com.loadfilesservice.loadfiles.web.controller;
 
+import jakarta.validation.Valid;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -9,6 +10,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.loadfilesservice.loadfiles.application.ConstantVariables;
+import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
+import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
+import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
+import com.loadfilesservice.loadfiles.application.service.IFileSignedService;
+import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
+import com.loadfilesservice.loadfiles.application.service.IFileToSignService;
+import com.loadfilesservice.loadfiles.domain.FileSigned;
+import com.loadfilesservice.loadfiles.domain.FileToSign;
+import com.loadfilesservice.loadfiles.web.dto.Converter;
+import com.loadfilesservice.loadfiles.web.dto.FileSignedDTORequest;
+import com.loadfilesservice.loadfiles.web.dto.FileToSignDTOResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -25,25 +42,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loadfilesservice.loadfiles.application.ConstantVariables;
-import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
-import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
-import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
-import com.loadfilesservice.loadfiles.application.service.IFileSignedService;
-import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
-import com.loadfilesservice.loadfiles.application.service.IFileToSignService;
-import com.loadfilesservice.loadfiles.domain.FileSigned;
-import com.loadfilesservice.loadfiles.domain.FileToSign;
-import com.loadfilesservice.loadfiles.web.dto.Converter;
-import com.loadfilesservice.loadfiles.web.dto.FileSignedDTORequest;
-import com.loadfilesservice.loadfiles.web.dto.FileToSignDTOResponse;
-
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/** Controlador REST para operaciones sobre archivos pendientes de firma. */
 @CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4400"})
 @RestController
 @RequestMapping("/filesign")
@@ -61,11 +60,12 @@ public class FilesToSignRestController {
 
     private final ObjectMapper objectMapper;
 
+    /** Retorna el listado de archivos de registro de empresa pendientes de firma. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
     @GetMapping(value = "/filestosignregistry", produces = "application/json")
     public ResponseEntity<?> getFileToSignCompanyRegistry() {
 
-        List<FileToSign> filesToSign = fileToSignService.findByCompanyFileTypeAndState(10L, 1L);
+        List<FileToSign> filesToSign = this.fileToSignService.findByCompanyFileTypeAndState(10L, 1L);
 
         if (filesToSign.isEmpty()) {
             log.error("[FilesToSignRestController][getFileToSignCompanyRegistry][ms-loadfiles-neg] "
@@ -73,19 +73,20 @@ public class FilesToSignRestController {
             throw new ResourceNotFoundException("No hay archivos de registro de empresa para firmar en la BD");
         } else {
             List<FileToSignDTOResponse> filesToSignDTO = filesToSign.stream()
-                    .map(converter::fileToSignToDTO)
+                    .map(this.converter::fileToSignToDTO)
                     .toList();
 
             return ResponseEntity.status(HttpStatus.OK).body(filesToSignDTO);
         }
     }
 
+    /** Retorna el PDF de un archivo pendiente de firma como arreglo de bytes. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
     @PostMapping("/pdftosign")
     public ResponseEntity<byte[]> getPdfToSign(@Valid @RequestBody FileToSign file) {
         Optional<FileToSign> companyFileFounded;
         try {
-            companyFileFounded = fileToSignService.findById(file.getId());
+            companyFileFounded = this.fileToSignService.findById(file.getId());
         } catch (Exception e) {
             log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo", e);
             throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
@@ -96,7 +97,7 @@ public class FilesToSignRestController {
 
         Resource resource;
         try {
-            resource = fileStorageService.loadFile(fileToSign.getFileName(), ConstantVariables.FILES_REGISTRY_SIGN);
+            resource = this.fileStorageService.loadFile(fileToSign.getFileName(), ConstantVariables.FILES_REGISTRY_SIGN);
         } catch (MalformedURLException e) {
             log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo: {}",
                     fileToSign.getFileName());
@@ -128,6 +129,7 @@ public class FilesToSignRestController {
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
+    /** Sube un PDF firmado y lo registra en la base de datos. */
     @PreAuthorize("@rolValidator.hasRol(authentication, 'firma-subida')")
     @PostMapping("/uploadsignedpdf")
     public ResponseEntity<?> uploadSignedPdf(@RequestParam("file") MultipartFile file,
@@ -136,7 +138,7 @@ public class FilesToSignRestController {
         Map<String, Object> response = new HashMap<>();
         FileSignedDTORequest fileSignedDTO;
         try {
-            fileSignedDTO = objectMapper.readValue(jsoSignedFile, FileSignedDTORequest.class);
+            fileSignedDTO = this.objectMapper.readValue(jsoSignedFile, FileSignedDTORequest.class);
         } catch (JsonProcessingException e) {
             log.error("[FilesToSignRestController][uploadSignedPdf][loadfiles] Error al parsear el JSON del archivo firmado", e);
             throw new BadRequestException("El formato del JSON de información del archivo firmado es inválido");
@@ -147,8 +149,8 @@ public class FilesToSignRestController {
             throw new BadRequestException("No hay un archivo pdf firmado para subir");
         }
 
-        FileSigned fileSignedBase = converter.fileSignedDtoToFileSigned(fileSignedDTO);
-        fileSignedService.saveSignedFile(file, fileSignedBase, fileSignedDTO.getCompanyName());
+        FileSigned fileSignedBase = this.converter.fileSignedDtoToFileSigned(fileSignedDTO);
+        this.fileSignedService.saveSignedFile(file, fileSignedBase, fileSignedDTO.getCompanyName());
 
         response.put("saveFile", true);
 

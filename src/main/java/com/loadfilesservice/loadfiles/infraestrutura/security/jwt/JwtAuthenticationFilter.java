@@ -1,8 +1,18 @@
 package com.loadfilesservice.loadfiles.infraestrutura.security.jwt;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,18 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
-
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/** Filtro que extrae y valida el token JWT en cada petición. */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -47,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            Claims claims = jwtTokenValidator.extractClaims(token);
+            Claims claims = this.jwtTokenValidator.extractClaims(token);
             String username = claims.getSubject();
             String rol = (String) claims.get("rol");
 
@@ -88,6 +87,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         response.setCharacterEncoding("UTF-8");
         ApiErrorResponse errorResponse = ApiErrorResponse.of(
                 status.value(), status.getReasonPhrase(), message, path);
-        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+        response.getWriter().write(this.objectMapper.writeValueAsString(errorResponse));
     }
 }

@@ -1,21 +1,20 @@
 package com.loadfilesservice.loadfiles.infraestrutura.security.handler;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
+/** Manejador de acceso denegado: responde con JSON 403. */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -36,6 +35,6 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
                 HttpStatus.FORBIDDEN.getReasonPhrase(),
                 "No tiene permisos para acceder a este recurso",
                 request.getRequestURI());
-        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+        response.getWriter().write(this.objectMapper.writeValueAsString(errorResponse));
     }
 }

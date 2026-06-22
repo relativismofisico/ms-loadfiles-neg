@@ -1,19 +1,22 @@
 package com.loadfilesservice.loadfiles.domain;
 
-import java.io.Serializable;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.io.Serializable;
+
 import lombok.Data;
 
+/** Entidad que representa el tipo de archivo de empresa. */
 @Entity
 @Data
 @Table(name = "file_type")
 public class CompanyFileType implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +28,5 @@ public class CompanyFileType implements Serializable {
 
     @Column(name = "file_type_name")
     private String fileTypeName;
-
-    private static final long serialVersionUID = 1L;
 
 }

@@ -3,15 +3,16 @@ package com.loadfilesservice.loadfiles.web.dto;
 import java.time.ZoneId;
 import java.util.Date;
 
-import org.springframework.stereotype.Component;
-
 import com.loadfilesservice.loadfiles.domain.CompanyFile;
 import com.loadfilesservice.loadfiles.domain.FileSigned;
 import com.loadfilesservice.loadfiles.domain.FileToSign;
+import org.springframework.stereotype.Component;
 
+/** Componente que convierte entre entidades y DTOs. */
 @Component
 public class Converter {
 
+    /** Convierte un CompanyFile a su DTO de respuesta. */
     public CompanyFileDTOResponse companyFileToDTO(CompanyFile companyFile) {
         CompanyFileDTOResponse response = new CompanyFileDTOResponse();
         response.setId(companyFile.getId());
@@ -26,6 +27,7 @@ public class Converter {
         return response;
     }
 
+    /** Convierte un DTO de solicitud a la entidad CompanyFile. */
     public CompanyFile companyFileDTOtoCompanyFile(CompanyFileDTORequest companyFileDTO) {
         CompanyFile companyFile = new CompanyFile();
         companyFile.setIpLoad(companyFileDTO.getIpLoad());
@@ -34,6 +36,7 @@ public class Converter {
         return companyFile;
     }
 
+    /** Convierte un FileToSign a su DTO de respuesta. */
     public FileToSignDTOResponse fileToSignToDTO(FileToSign fileToSign) {
         FileToSignDTOResponse response = new FileToSignDTOResponse();
         response.setId(fileToSign.getId());
@@ -43,6 +46,7 @@ public class Converter {
         return response;
     }
 
+    /** Convierte un DTO de solicitud de archivo firmado a la entidad FileSigned. */
     public FileSigned fileSignedDtoToFileSigned(FileSignedDTORequest fileSignedDTO) {
         FileSigned fileSigned = new FileSigned();
         fileSigned.setOriginalFileName(fileSignedDTO.getOriginalFileName());

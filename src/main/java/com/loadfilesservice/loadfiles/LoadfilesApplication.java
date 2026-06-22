@@ -3,11 +3,16 @@ package com.loadfilesservice.loadfiles;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/** Punto de entrada de la aplicación ms-loadfiles-neg. */
 @SpringBootApplication
-public class LoadfilesApplication {
+public final class LoadfilesApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(LoadfilesApplication.class, args);
-	}
+    private LoadfilesApplication() {
+    }
+
+    /** Inicia la aplicación Spring Boot. */
+    public static void main(String[] args) {
+        SpringApplication.run(LoadfilesApplication.class, args);
+    }
 
 }
