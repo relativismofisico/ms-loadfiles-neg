@@ -17,6 +17,12 @@ logging:
     com.loadfilesservice: debug
     org.springframework.security: debug
 
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 security:
   jwt:
     secret: AF84F1FGllNpNnLG055fdg5hGHJK4KGG5VH5TR5J05JFGGDFDGXVV545J4505G666JFGF2mMY95y

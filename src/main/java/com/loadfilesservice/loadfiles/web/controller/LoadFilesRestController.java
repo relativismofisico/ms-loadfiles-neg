@@ -13,6 +13,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loadfilesservice.loadfiles.application.ConstantVariables;
+import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
 import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
 import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
@@ -23,6 +24,14 @@ import com.loadfilesservice.loadfiles.domain.CompanyFileType;
 import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTORequest;
 import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTOResponse;
 import com.loadfilesservice.loadfiles.web.dto.Converter;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -43,6 +52,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /** Controlador REST para la carga y consulta de archivos de empresa. */
+@Tag(name = "Archivos de Empresa", description = "Operaciones de carga y consulta de archivos de empresa")
 @CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4600"})
 @RestController
 @RequestMapping("/api")
@@ -59,10 +69,27 @@ public class LoadFilesRestController {
     private final ObjectMapper objectMapper;
 
     /** Sube un archivo de empresa y registra el cambio en la base de datos. */
+    @Operation(summary = "Subir archivo de empresa",
+        description = "Sube un archivo de empresa en formato multipart/form-data y lo registra en BD. "
+            + "Roles requeridos: ADMINISTRADOR, EMPRESA, OPERARIO.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Archivo subido y registrado exitosamente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "400", description = "Formato JSON del campo fileinfo inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'carga')")
     @PostMapping(value = "/companyfile/upload", produces = "application/json")
-    public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile newfile,
-                                        @RequestParam("fileinfo") String jsonCompanyFile) {
+    public ResponseEntity<?> uploadFile(
+            @Parameter(description = "Archivo PDF a subir") @RequestParam("file") MultipartFile newfile,
+            @Parameter(description = "Información del archivo en JSON. Campos: ipLoad (string), company (long), companyFileType")
+            @RequestParam("fileinfo") String jsonCompanyFile) {
 
         Map<String, Object> response = new HashMap<>();
         CompanyFileDTORequest companyFileDTO;
@@ -86,9 +113,24 @@ public class LoadFilesRestController {
     }
 
     /** Retorna el nombre del archivo activo de una empresa por tipo. */
+    @Operation(summary = "Obtener nombre de archivo activo por empresa y tipo",
+        description = "Retorna el nombre del archivo activo de una empresa filtrado por tipo de archivo. "
+            + "Roles requeridos: todos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Nombre del archivo retornado exitosamente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error interno al obtener el archivo",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @PostMapping("/companyfile/upload/file/{id}")
-    public ResponseEntity<?> getFile(@Valid @RequestBody CompanyFileType fileType, @PathVariable Long id) {
+    public ResponseEntity<?> getFile(
+            @Valid @RequestBody CompanyFileType fileType,
+            @Parameter(description = "ID de la empresa", example = "1") @PathVariable Long id) {
 
         Map<String, Object> response = new HashMap<>();
 
@@ -109,9 +151,24 @@ public class LoadFilesRestController {
     }
 
     /** Retorna el listado de archivos activos de una empresa. */
+    @Operation(summary = "Listar archivos activos de empresa",
+        description = "Retorna todos los archivos activos (estado=1) asociados a una empresa. "
+            + "Roles requeridos: todos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de archivos retornada exitosamente",
+            content = @Content(mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = CompanyFileDTOResponse.class)))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "No se encontraron archivos para la empresa",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping(value = "/listofcompanyfiles/{id}", produces = "application/json")
-    public ResponseEntity<?> getListOfCompanyFiles(@PathVariable Long id) {
+    public ResponseEntity<?> getListOfCompanyFiles(
+            @Parameter(description = "ID de la empresa", example = "1") @PathVariable Long id) {
         List<CompanyFile> companyFiles = this.companyFileService.findByCompanyAndState(id, 1L);
 
         if (companyFiles.isEmpty()) {
@@ -127,6 +184,19 @@ public class LoadFilesRestController {
     }
 
     /** Retorna el PDF de un archivo de empresa como arreglo de bytes. */
+    @Operation(summary = "Obtener PDF de archivo de empresa",
+        description = "Retorna el contenido binario del PDF de un archivo de empresa. "
+            + "Roles requeridos: todos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "PDF retornado exitosamente",
+            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary"))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error al obtener o leer el archivo PDF",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @PostMapping("/companyfilepdf")
     public ResponseEntity<byte[]> getPdfCompanyFile(@Valid @RequestBody CompanyFile file) {

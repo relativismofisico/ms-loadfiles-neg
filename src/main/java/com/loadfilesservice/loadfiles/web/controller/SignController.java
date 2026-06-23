@@ -3,10 +3,18 @@ package com.loadfilesservice.loadfiles.web.controller;
 import java.net.MalformedURLException;
 import java.util.Optional;
 
+import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
 import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.application.service.ISignService;
 import com.loadfilesservice.loadfiles.domain.Sign;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -25,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /** Controlador REST para operaciones sobre firmas digitales. */
+@Tag(name = "Firmas Digitales", description = "Operaciones de registro y consulta de firmas digitales")
 @CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4400"})
 @RestController
 @RequestMapping("/signs")
@@ -37,14 +46,27 @@ public class SignController {
     private final IFileStorageService fileStorageService;
 
     /** Guarda o reemplaza la firma activa de una empresa. */
+    @Operation(summary = "Guardar o reemplazar firma de empresa",
+        description = "Sube una imagen de firma y la asocia a una empresa o usuario, reemplazando la firma activa previa. "
+            + "Roles requeridos: ADMINISTRADOR, EMPRESA.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Firma guardada exitosamente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Sign.class))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'firma-guardado')")
     @PostMapping("/save")
     public ResponseEntity<?> saveSign(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("company") Long company,
-            @RequestParam("user") Long user,
-            @RequestParam("ipLoad") String ipLoad,
-            @RequestParam("companyName") String companyName) {
+            @Parameter(description = "Imagen de la firma (PNG, JPG)") @RequestParam("file") MultipartFile file,
+            @Parameter(description = "ID de la empresa", example = "1") @RequestParam("company") Long company,
+            @Parameter(description = "ID del usuario (0 si es firma de empresa)", example = "0") @RequestParam("user") Long user,
+            @Parameter(description = "Dirección IP desde la que se carga la firma") @RequestParam("ipLoad") String ipLoad,
+            @Parameter(description = "Nombre identificador de la empresa", example = "EMPRESA_SA") @RequestParam("companyName") String companyName) {
 
         Long effectiveUser;
         if (Long.valueOf(0L).equals(user)) {
@@ -57,9 +79,26 @@ public class SignController {
     }
 
     /** Retorna el archivo de firma activa de una empresa. */
+    @Operation(summary = "Obtener firma activa de empresa",
+        description = "Retorna el archivo de imagen de la firma activa asociada a una empresa. "
+            + "Roles requeridos: todos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Firma retornada exitosamente",
+            content = @Content(mediaType = "application/octet-stream",
+                schema = @Schema(type = "string", format = "binary"))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "No se encontró firma activa para la empresa",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error al cargar el archivo de firma",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping("/company/{companyId}")
-    public ResponseEntity<Resource> getActiveSignByCompany(@PathVariable Long companyId) {
+    public ResponseEntity<Resource> getActiveSignByCompany(
+            @Parameter(description = "ID de la empresa", example = "1") @PathVariable Long companyId) {
 
         Optional<Sign> signOptional;
         try {
@@ -87,9 +126,26 @@ public class SignController {
     }
 
     /** Retorna el archivo de firma activa de un usuario. */
+    @Operation(summary = "Obtener firma activa de usuario",
+        description = "Retorna el archivo de imagen de la firma activa asociada a un usuario. "
+            + "Roles requeridos: todos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Firma retornada exitosamente",
+            content = @Content(mediaType = "application/octet-stream",
+                schema = @Schema(type = "string", format = "binary"))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "No se encontró firma activa para el usuario",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error al cargar el archivo de firma",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping("/user/{userId}")
-    public ResponseEntity<Resource> getActiveSignByUser(@PathVariable Long userId) {
+    public ResponseEntity<Resource> getActiveSignByUser(
+            @Parameter(description = "ID del usuario", example = "5") @PathVariable Long userId) {
 
         Optional<Sign> signOptional;
         try {

@@ -13,6 +13,7 @@ import java.util.Optional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loadfilesservice.loadfiles.application.ConstantVariables;
+import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
 import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
 import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
@@ -24,6 +25,14 @@ import com.loadfilesservice.loadfiles.domain.FileToSign;
 import com.loadfilesservice.loadfiles.web.dto.Converter;
 import com.loadfilesservice.loadfiles.web.dto.FileSignedDTORequest;
 import com.loadfilesservice.loadfiles.web.dto.FileToSignDTOResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -43,6 +52,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /** Controlador REST para operaciones sobre archivos pendientes de firma. */
+@Tag(name = "Archivos para Firmar", description = "Operaciones sobre archivos pendientes de firma y carga de firmados")
 @CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4400"})
 @RestController
 @RequestMapping("/filesign")
@@ -61,6 +71,20 @@ public class FilesToSignRestController {
     private final ObjectMapper objectMapper;
 
     /** Retorna el listado de archivos de registro de empresa pendientes de firma. */
+    @Operation(summary = "Listar archivos de registro pendientes de firma",
+        description = "Retorna los archivos de tipo registro de empresa (tipo 10) pendientes de firma (estado=1). "
+            + "Roles requeridos: ADMINISTRADOR, OPERARIO, FONDEADOR.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de archivos pendientes de firma retornada exitosamente",
+            content = @Content(mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = FileToSignDTOResponse.class)))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "No se encontraron archivos pendientes de firma",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
     @GetMapping(value = "/filestosignregistry", produces = "application/json")
     public ResponseEntity<?> getFileToSignCompanyRegistry() {
@@ -81,6 +105,19 @@ public class FilesToSignRestController {
     }
 
     /** Retorna el PDF de un archivo pendiente de firma como arreglo de bytes. */
+    @Operation(summary = "Obtener PDF pendiente de firma",
+        description = "Retorna el contenido binario del PDF de un archivo pendiente de firma. "
+            + "Roles requeridos: ADMINISTRADOR, OPERARIO, FONDEADOR.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "PDF pendiente de firma retornado exitosamente",
+            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary"))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error al obtener o leer el archivo PDF",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
     @PostMapping("/pdftosign")
     public ResponseEntity<byte[]> getPdfToSign(@Valid @RequestBody FileToSign file) {
@@ -130,10 +167,27 @@ public class FilesToSignRestController {
     }
 
     /** Sube un PDF firmado y lo registra en la base de datos. */
+    @Operation(summary = "Subir PDF firmado",
+        description = "Sube un archivo PDF firmado en formato multipart/form-data y lo registra en BD. "
+            + "Roles requeridos: ADMINISTRADOR, OPERARIO.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "PDF firmado subido y registrado exitosamente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Map.class))),
+        @ApiResponse(responseCode = "400", description = "Archivo vacío o formato JSON de fileinfo inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'firma-subida')")
     @PostMapping("/uploadsignedpdf")
-    public ResponseEntity<?> uploadSignedPdf(@RequestParam("file") MultipartFile file,
-                                             @RequestParam("fileinfo") String jsoSignedFile) {
+    public ResponseEntity<?> uploadSignedPdf(
+            @Parameter(description = "Archivo PDF firmado a subir") @RequestParam("file") MultipartFile file,
+            @Parameter(description = "Información del archivo firmado en JSON. Campos: originalFileName, ipLoad, companyName, company, user, companyFileType")
+            @RequestParam("fileinfo") String jsoSignedFile) {
 
         Map<String, Object> response = new HashMap<>();
         FileSignedDTORequest fileSignedDTO;
