@@ -14,6 +14,7 @@ import com.loadfilesservice.loadfiles.domain.FileSigned;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IFileSignedDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,11 +39,7 @@ public class FileSignedServiceImpl implements IFileSignedService {
     @Transactional(readOnly = true)
     public List<FileSigned> findByCompanyAndState(Long companyId, Long state) {
         List<FileSigned> files = fileSignedDao.findByCompanyAndState(companyId, state);
-        files.forEach(f -> {
-            if (f.getCompanyFileType() != null) {
-                f.getCompanyFileType().getDescription();
-            }
-        });
+        files.forEach(f -> Hibernate.initialize(f.getCompanyFileType()));
         return files;
     }
 
