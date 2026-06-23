@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan"
+              testname="ms-loadfiles-neg — Carga Básica (10 hilos / 5 min)" enabled="true">
+      <stringProp name="TestPlan.comments">Carga básica: 10 hilos | 30s ramp-up | 5 min duration | GET + write endpoints</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.tearDown_on_shutdown">true</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments"
+                   guiclass="ArgumentsPanel" testclass="Arguments" testname="Variables de Usuario" enabled="true">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="host" elementType="Argument">
+            <stringProp name="Argument.name">host</stringProp>
+            <stringProp name="Argument.value">${__P(host,localhost)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="port" elementType="Argument">
+            <stringProp name="Argument.name">port</stringProp>
+            <stringProp name="Argument.value">${__P(port,8081)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="protocol" elementType="Argument">
+            <stringProp name="Argument.name">protocol</stringProp>
+            <stringProp name="Argument.value">${__P(protocol,http)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="data.dir" elementType="Argument">
+            <stringProp name="Argument.name">data.dir</stringProp>
+            <stringProp name="Argument.value">${__P(data.dir,external-test/jmeter/data/dev)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="ip.load" elementType="Argument">
+            <stringProp name="Argument.name">ip.load</stringProp>
+            <stringProp name="Argument.value">${__P(ip.load,127.0.0.1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="file.type.id" elementType="Argument">
+            <stringProp name="Argument.name">file.type.id</stringProp>
+            <stringProp name="Argument.value">${__P(file.type.id,1)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+
+      <!-- SetUp: JWT -->
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup"
+                        testname="SetUp — JWT Token" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">stoptest</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
+                     guiclass="LoopControlGui" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <boolProp name="ThreadGroup.scheduler">false</boolProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler"
+                       testname="Generar JWT HS256" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="script"><![CDATA[
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
+import java.util.Base64
+
+def jwtSecret = props.get("jwt.secret")
+def jwtRol    = props.get("jwt.rol", "ADMINISTRADOR")
+def jwtSub    = props.get("jwt.subject", "jmeter-load")
+
+if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
+    throw new Exception("[Load] jwt.secret requerido. Ejecutar con: -p config/dev.properties")
+}
+
+byte[] secretBytes = Base64.decoder.decode(jwtSecret.trim())
+String headerJson  = '{"alg":"HS256","typ":"JWT"}'
+String headerB64   = Base64.urlEncoder.withoutPadding().encodeToString(headerJson.getBytes("UTF-8"))
+
+long nowSecs = System.currentTimeMillis() / 1000L
+String payloadJson = '{"sub":"' + jwtSub + '","rol":"' + jwtRol + '","iat":' + nowSecs + ',"exp":' + (nowSecs + 86400L) + '}'
+String payloadB64  = Base64.urlEncoder.withoutPadding().encodeToString(payloadJson.getBytes("UTF-8"))
+
+String signingInput = headerB64 + "." + payloadB64
+Mac mac = Mac.getInstance("HmacSHA256")
+mac.init(new SecretKeySpec(secretBytes, "HmacSHA256"))
+String signature = Base64.urlEncoder.withoutPadding().encodeToString(mac.doFinal(signingInput.getBytes("UTF-8")))
+
+props.put("jwt.token.generated", signingInput + "." + signature)
+props.put("PROD_SAFE_ONLY", props.get("prod.safe.only", "false"))
+log.info("[Load SetUp] JWT OK | rol=" + jwtRol)
+SampleResult.setSuccessful(true)
+          ]]></stringProp>
+        </JSR223Sampler>
+        <hashTree/>
+      </hashTree>
+
+      <!-- Thread Group Carga -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup"
+                   testname="Carga Básica — ${__P(profile2.threads,10)} hilos / ${__P(profile2.duration,300)}s" enabled="true">
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController"
+                     guiclass="LoopControlGui" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">${__P(profile2.loops,-1)}</stringProp>
+        </elementProp>
+        <stringProp name="ThreadGroup.num_threads">${__P(profile2.threads,10)}</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">${__P(profile2.rampup,30)}</stringProp>
+        <boolProp name="ThreadGroup.scheduler">true</boolProp>
+        <stringProp name="ThreadGroup.duration">${__P(profile2.duration,300)}</stringProp>
+        <stringProp name="ThreadGroup.delay">2</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
+      </ThreadGroup>
+      <hashTree>
+
+        <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement"
+                           testname="HTTP Defaults" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments"
+                       guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.domain">${host}</stringProp>
+          <stringProp name="HTTPSampler.port">${port}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${protocol}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+          <stringProp name="HTTPSampler.connect_timeout">${__P(timeout.connect,5000)}</stringProp>
+          <stringProp name="HTTPSampler.response_timeout">${__P(timeout.response,30000)}</stringProp>
+          <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+        </ConfigTestElement>
+        <hashTree/>
+
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager"
+                       testname="Headers — JWT Bearer" enabled="true">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">Authorization</stringProp>
+              <stringProp name="Header.value">Bearer ${__P(jwt.token.generated)}</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet"
+                    testname="CSV — company-ids" enabled="true">
+          <stringProp name="filename">${data.dir}/company-ids.csv</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="variableNames">companyId,companyName,fileTypeId</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <stringProp name="delimiter">,</stringProp>
+          <boolProp name="recycle">true</boolProp>
+          <boolProp name="stopThread">false</boolProp>
+          <stringProp name="shareMode">shareMode.all</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet"
+                    testname="CSV — user-ids" enabled="true">
+          <stringProp name="filename">${data.dir}/user-ids.csv</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="variableNames">userId</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <stringProp name="delimiter">,</stringProp>
+          <boolProp name="recycle">true</boolProp>
+          <boolProp name="stopThread">false</boolProp>
+          <stringProp name="shareMode">shareMode.all</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet"
+                    testname="CSV — file-ids" enabled="true">
+          <stringProp name="filename">${data.dir}/file-ids.csv</stringProp>
+          <stringProp name="fileEncoding">UTF-8</stringProp>
+          <stringProp name="variableNames">fileId,signedFileId,fileToSignId,fileCompanyId</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <stringProp name="delimiter">,</stringProp>
+          <boolProp name="recycle">true</boolProp>
+          <boolProp name="stopThread">false</boolProp>
+          <stringProp name="shareMode">shareMode.all</stringProp>
+        </CSVDataSet>
+        <hashTree/>
+
+        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer"
+                       testname="Think Time — 500ms" enabled="true">
+          <stringProp name="ConstantTimer.delay">500</stringProp>
+        </ConstantTimer>
+        <hashTree/>
+
+        <!-- IfController escritura -->
+        <IfController guiclass="IfControllerPanel" testclass="IfController"
+                      testname="IF — skip escritura en prod" enabled="true">
+          <stringProp name="IfController.condition">"${__P(PROD_SAFE_ONLY,false)}" == "false"</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">false</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy"
+                            testname="E01 POST /api/companyfile/upload" enabled="true">
+            <boolProp name="HTTPSampler.DO_MULTIPART_POST">true</boolProp>
+            <boolProp name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART">true</boolProp>
+            <elementProp name="HTTPsampler.Files" elementType="HTTPFileArgs">
+              <collectionProp name="HTTPFileArgs.files">
+                <elementProp name="${__P(testfiles.dir,src/automated-test/resources/testfiles)}/dummy.pdf" elementType="HTTPFileArg">
+                  <stringProp name="File.path">${__P(testfiles.dir,src/automated-test/resources/testfiles)}/dummy.pdf</stringProp>
+                  <stringProp name="File.paramname">file</stringProp>
+                  <stringProp name="File.mimetype">application/pdf</stringProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+            <elementProp name="HTTPsampler.Arguments" elementType="Arguments"
+                         guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+              <collectionProp name="Arguments.arguments">
+                <elementProp name="fileinfo" elementType="HTTPArgument">
+                  <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                  <stringProp name="Argument.name">fileinfo</stringProp>
+                  <stringProp name="Argument.value">{"ipLoad":"${ip.load}","company":${companyId},"companyFileType":{"id":${file.type.id},"description":"Registro","fileTypeName":"REGISTRO"}}</stringProp>
+                  <stringProp name="Argument.metadata">=</stringProp>
+                  <boolProp name="HTTPArgument.use_equals">true</boolProp>
+                </elementProp>
+              </collectionProp>
+            </elementProp>
+            <stringProp name="HTTPSampler.path">/load/api/companyfile/upload</stringProp>
+            <stringProp name="HTTPSampler.method">POST</stringProp>
+            <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+            <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+          </HTTPSamplerProxy>
+          <hashTree>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion"
+                               testname="Assert HTTP 201" enabled="true">
+              <collectionProp name="Asserion.test_strings">
+                <stringProp name="49587">201</stringProp>
+              </collectionProp>
+              <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+              <boolProp name="Assertion.assume_success">false</boolProp>
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion"
+                               testname="SLA upload" enabled="true">
+              <stringProp name="DurationAssertion.duration">${__P(sla.upload.ms,15000)}</stringProp>
+            </DurationAssertion>
+            <hashTree/>
+          </hashTree>
+        </hashTree>
+
+        <!-- GET endpoints -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy"
+                          testname="E03 GET /api/listofcompanyfiles/{id}" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments"
+                       guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.path">/load/api/listofcompanyfiles/${companyId}</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion"
+                             testname="Assert 200/404" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+              <stringProp name="52598">404</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">true</boolProp>
+            <intProp name="Assertion.test_type">40</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion"
+                             testname="SLA read" enabled="true">
+            <stringProp name="DurationAssertion.duration">${__P(sla.read.ms,2000)}</stringProp>
+          </DurationAssertion>
+          <hashTree/>
+        </hashTree>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy"
+                          testname="E07 GET /filesign/filestosignregistry" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments"
+                       guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.path">/load/filesign/filestosignregistry</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion"
+                             testname="Assert 200/404" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+              <stringProp name="52598">404</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">true</boolProp>
+            <intProp name="Assertion.test_type">40</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion"
+                             testname="SLA read" enabled="true">
+            <stringProp name="DurationAssertion.duration">${__P(sla.read.ms,2000)}</stringProp>
+          </DurationAssertion>
+          <hashTree/>
+        </hashTree>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy"
+                          testname="E11 GET /signs/company/{companyId}" enabled="true">
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments"
+                       guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments"/>
+          </elementProp>
+          <stringProp name="HTTPSampler.path">/load/signs/company/${companyId}</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion"
+                             testname="Assert 200/404" enabled="true">
+            <collectionProp name="Asserion.test_strings">
+              <stringProp name="49586">200</stringProp>
+              <stringProp name="52598">404</stringProp>
+            </collectionProp>
+            <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
+            <boolProp name="Assertion.assume_success">true</boolProp>
+            <intProp name="Assertion.test_type">40</intProp>
+          </ResponseAssertion>
+          <hashTree/>
+          <DurationAssertion guiclass="DurationAssertionGui" testclass="DurationAssertion"
+                             testname="SLA read" enabled="true">
+            <stringProp name="DurationAssertion.duration">${__P(sla.read.ms,2000)}</stringProp>
+          </DurationAssertion>
+          <hashTree/>
+        </hashTree>
+
+        <!-- Listeners -->
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector"
+                         testname="Summary Report — Carga Básica" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <assertions>true</assertions>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+
+        <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector"
+                         testname="Aggregate Report — Carga Básica" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time>
+              <latency>true</latency>
+              <timestamp>true</timestamp>
+              <success>true</success>
+              <label>true</label>
+              <code>true</code>
+              <message>true</message>
+              <threadName>true</threadName>
+              <bytes>true</bytes>
+              <sentBytes>true</sentBytes>
+              <url>true</url>
+              <threadCounts>true</threadCounts>
+              <idleTime>true</idleTime>
+              <connectTime>true</connectTime>
+            </value>
+          </objProp>
+          <stringProp name="filename"></stringProp>
+        </ResultCollector>
+        <hashTree/>
+
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
