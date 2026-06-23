@@ -15,7 +15,6 @@ import com.loadfilesservice.loadfiles.domain.CompanyFileType;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.ICompanyFileDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -56,9 +55,7 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
     @Override
     @Transactional(readOnly = true)
     public List<CompanyFile> findByCompanyAndState(Long companyId, Long state) {
-        List<CompanyFile> files = companyFileDao.findByCompanyAndState(companyId, state);
-        files.forEach(f -> Hibernate.initialize(f.getCompanyFileType()));
-        return files;
+        return companyFileDao.findByCompanyAndState(companyId, state);
     }
 
     @Override

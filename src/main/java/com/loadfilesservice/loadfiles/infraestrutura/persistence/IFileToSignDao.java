@@ -9,8 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 /** Repositorio JPA para la entidad FileToSign. */
 public interface IFileToSignDao extends JpaRepository<FileToSign, Long> {
 
-    /** Busca archivos pendientes de firma por tipo y estado. */
-    @Query(value = "select * from files_to_sign where file_type_ide = ?1 and state = ?2", nativeQuery = true)
+    /** Busca archivos pendientes de firma por tipo y estado cargando companyFileType en la misma consulta. */
+    @Query("select f from FileToSign f join fetch f.companyFileType where f.companyFileType.id = ?1 and f.state = ?2")
     List<FileToSign> findByCompanyFileTypeAndState(Long companyFileType, Long state);
 
 }
