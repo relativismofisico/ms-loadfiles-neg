@@ -14,8 +14,8 @@ public interface ICompanyFileDao extends CrudRepository<CompanyFile, Long> {
     @Query("select f from CompanyFile f where f.company=?1 and f.companyFileType=?2")
     List<CompanyFile> findByCompanyAndCompanyFileType(Long companyId, CompanyFileType companyFileType);
 
-    /** Busca archivos por empresa y estado usando consulta nativa. */
-    @Query(value = "select * from files where company_ide = ?1 and state = ?2", nativeQuery = true)
+    /** Busca archivos por empresa y estado cargando companyFileType en la misma consulta. */
+    @Query("select f from CompanyFile f join fetch f.companyFileType where f.company = ?1 and f.state = ?2")
     List<CompanyFile> findByCompanyAndState(Long companyId, Long state);
 
 }

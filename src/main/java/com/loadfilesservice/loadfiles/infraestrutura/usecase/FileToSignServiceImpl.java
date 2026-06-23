@@ -9,7 +9,6 @@ import com.loadfilesservice.loadfiles.domain.FileToSign;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IFileToSignDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +23,7 @@ public class FileToSignServiceImpl implements IFileToSignService {
     @Override
     @Transactional(readOnly = true)
     public List<FileToSign> findByCompanyFileTypeAndState(Long companyFileType, Long state) {
-        List<FileToSign> files = fileToSignDao.findByCompanyFileTypeAndState(companyFileType, state);
-        files.forEach(f -> Hibernate.initialize(f.getCompanyFileType()));
-        return files;
+        return fileToSignDao.findByCompanyFileTypeAndState(companyFileType, state);
     }
 
     @Override
