@@ -15,6 +15,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 /** Manejador global de excepciones para la API REST. */
@@ -132,6 +133,21 @@ public class GlobalExceptionHandler {
                         ex.getStatusCode().value(),
                         reason,
                         body,
+                        extractPath(request)));
+    }
+
+    /** Maneja errores de tipo en argumentos de path/query (ej. /id/abc donde id debe ser Long). */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, WebRequest request) {
+        String msg = "Parámetro '" + ex.getName() + "' tiene un valor inválido: " + ex.getValue();
+        log.warn("[GlobalExceptionHandler] TypeMismatch: {}", msg);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiErrorResponse.of(
+                        HttpStatus.BAD_REQUEST.value(),
+                        HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                        msg,
                         extractPath(request)));
     }
 

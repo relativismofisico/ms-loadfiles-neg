@@ -147,7 +147,7 @@
     <!-- Supresiones para clases Utility con @UtilityClass (Lombok genera constructor privado) -->
     <module name="SuppressionXpathSingleFilter">
       <property name="checks" value="HideUtilityClassConstructor"/>
-      <property name="files" value=".*[/\\\\](FormatoUtil|MimeTypeUtil|NombreArchivoUtil|MsInstruccionesUtilApplication)\.java$"/>
+      <property name="files" value=".*[/\\\\](FormatoUtil|MimeTypeUtil|NombreArchivoUtil|MsInstruccionesUtilApplication|LoadfilesApplication)\.java$"/>
     </module>
 
   </module>

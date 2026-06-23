@@ -5,10 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /** Punto de entrada de la aplicación ms-loadfiles-neg. */
 @SpringBootApplication
-public final class LoadfilesApplication {
-
-    private LoadfilesApplication() {
-    }
+public class LoadfilesApplication {
 
     /** Inicia la aplicación Spring Boot. */
     public static void main(String[] args) {

@@ -9,6 +9,11 @@ sourceSets {
             compileClasspath += sourceSets.main.output + sourceSets.test.output
             runtimeClasspath += sourceSets.main.output + sourceSets.test.output
         }
+        groovy {
+            srcDirs = ['src/automated-test/groovy']
+            compileClasspath += sourceSets.main.output + sourceSets.test.output
+            runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+        }
         resources {
             srcDirs = ['src/automated-test/resources']
         }

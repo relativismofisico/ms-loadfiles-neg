@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Karate — credenciales locales (NUNCA commitear) ###
+src/automated-test/resources/karate.properties
+.gradle/

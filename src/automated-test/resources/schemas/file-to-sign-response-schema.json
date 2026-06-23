@@ -1,0 +1,10 @@
+{
+  "id": "#number",
+  "fileName": "##string",
+  "filePath": "##string",
+  "companyFileType": {
+    "id": "#number",
+    "description": "##string",
+    "fileTypeName": "##string"
+  }
+}

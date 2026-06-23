@@ -1,0 +1,10 @@
+{
+  "id": "#number",
+  "fileName": "##string",
+  "filePath": "##string",
+  "ipLoad": "##string",
+  "loadTime": "##string",
+  "state": "#number",
+  "company": "#number",
+  "user": "##number"
+}
