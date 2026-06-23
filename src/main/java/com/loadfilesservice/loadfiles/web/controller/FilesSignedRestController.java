@@ -9,11 +9,20 @@ import java.util.List;
 import java.util.Optional;
 
 import com.loadfilesservice.loadfiles.application.ConstantVariables;
+import com.loadfilesservice.loadfiles.application.exception.ApiErrorResponse;
 import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
 import com.loadfilesservice.loadfiles.application.service.IFileSignedService;
 import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.domain.FileSigned;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -32,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Controlador REST para operaciones sobre archivos firmados. */
+@Tag(name = "Archivos Firmados", description = "Operaciones de consulta y descarga de archivos firmados")
 @CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4600"})
 @RestController
 @RequestMapping("/filessigned")
@@ -44,9 +54,24 @@ public class FilesSignedRestController {
     private final IFileStorageService fileStorageService;
 
     /** Retorna la lista de archivos firmados activos de una empresa. */
+    @Operation(summary = "Listar archivos firmados activos de empresa",
+        description = "Retorna todos los archivos firmados activos (estado=1) de una empresa. "
+            + "Roles requeridos: todos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de archivos firmados retornada exitosamente",
+            content = @Content(mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = FileSigned.class)))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "404", description = "No se encontraron archivos firmados para la empresa",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping(value = "/listofcompanysignedfiles/{id}", produces = "application/json")
-    public ResponseEntity<?> getListOfCompanySignedFiles(@PathVariable Long id) {
+    public ResponseEntity<?> getListOfCompanySignedFiles(
+            @Parameter(description = "ID de la empresa", example = "1") @PathVariable Long id) {
         List<FileSigned> filesSigned = this.fileSignedService.findByCompanyAndState(id, 1L);
 
         if (filesSigned.isEmpty()) {
@@ -59,9 +84,25 @@ public class FilesSignedRestController {
     }
 
     /** Retorna el PDF firmado de una empresa como arreglo de bytes. */
+    @Operation(summary = "Obtener PDF firmado de empresa",
+        description = "Retorna el contenido binario del PDF firmado de una empresa. "
+            + "Roles requeridos: todos.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "PDF firmado retornado exitosamente",
+            content = @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary"))),
+        @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "403", description = "Acceso denegado: rol insuficiente",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class))),
+        @ApiResponse(responseCode = "500", description = "Error al obtener o leer el archivo PDF firmado",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
+    })
     @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @PostMapping("/companyfilesignedpdf/{companyName}")
-    public ResponseEntity<byte[]> getPdfCompanyFileSigned(@Valid @RequestBody FileSigned file, @PathVariable String companyName) {
+    public ResponseEntity<byte[]> getPdfCompanyFileSigned(
+            @Valid @RequestBody FileSigned file,
+            @Parameter(description = "Nombre identificador de la empresa", example = "EMPRESA_SA")
+            @PathVariable String companyName) {
         Optional<FileSigned> companyFileSignedFoundedOpt;
         try {
             companyFileSignedFoundedOpt = this.fileSignedService.findById(file.getId());
