@@ -1,0 +1,635 @@
+{
+  "info": {
+    "_postman_id": "c7f3a2b1-d4e5-4f6a-8b9c-0d1e2f3a4b5c",
+    "name": "ms-loadfiles-neg — Smoke Tests",
+    "description": "Colección de smoke tests para el microservicio ms-loadfiles-neg (Karonte/Factoring).\n\n**Puerto:** 8081  \n**context-path:** /load  \n**Auth:** JWT HS256 — se genera automáticamente en el pre-request de la colección.\n\n**Roles disponibles (variable `jwt_rol`):**\n- `ADMINISTRADOR` — acceso a todos los grupos\n- `EMPRESA` — grupos: todos, carga, firma-guardado\n- `OPERARIO` — grupos: todos, carga, revision, firma-subida\n- `FONDEADOR` — grupos: todos, revision\n\n**Variables requeridas:** ajustar en el environment adjunto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",       "value": "http://localhost:8081/load", "type": "string" },
+    { "key": "jwt_secret",     "value": "AF84F1FGllNpNnLG055fdg5hGHJK4KGG5VH5TR5J05JFGGDFDGXVV545J4505G666JFGF2mMY95y", "type": "string" },
+    { "key": "jwt_rol",        "value": "ADMINISTRADOR", "type": "string" },
+    { "key": "jwt_token",      "value": "", "type": "string" },
+    { "key": "company_id",     "value": "1", "type": "string" },
+    { "key": "company_name",   "value": "empresa-test", "type": "string" },
+    { "key": "company_file_id","value": "1", "type": "string" },
+    { "key": "file_signed_id", "value": "1", "type": "string" },
+    { "key": "file_to_sign_id","value": "1", "type": "string" },
+    { "key": "sign_company_id","value": "1", "type": "string" },
+    { "key": "sign_user_id",   "value": "1", "type": "string" },
+    { "key": "user_id",        "value": "0", "type": "string" },
+    { "key": "ip_load",        "value": "127.0.0.1", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{jwt_token}}", "type": "string" }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Genera JWT HS256 para cada request de la colección",
+          "const secret = pm.collectionVariables.get('jwt_secret');",
+          "const rol    = pm.collectionVariables.get('jwt_rol') || 'ADMINISTRADOR';",
+          "",
+          "function b64url(str) {",
+          "    return btoa(str).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=/g, '');",
+          "}",
+          "",
+          "const now    = Math.floor(Date.now() / 1000);",
+          "const header  = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));",
+          "const payload = b64url(JSON.stringify({ sub: 'smoke-tester', rol: rol, iat: now, exp: now + 3600 }));",
+          "const input   = header + '.' + payload;",
+          "",
+          "const sig = CryptoJS.HmacSHA256(input, secret)",
+          "    .toString(CryptoJS.enc.Base64)",
+          "    .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=/g, '');",
+          "",
+          "pm.collectionVariables.set('jwt_token', input + '.' + sig);"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "CompanyFile",
+      "description": "Endpoints de carga y consulta de archivos de empresa (LoadFilesRestController — /load/api).",
+      "item": [
+        {
+          "name": "Upload Company File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/companyfile/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "companyfile", "upload"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Archivo PDF a subir"
+                },
+                {
+                  "key": "fileinfo",
+                  "value": "{\"ipLoad\":\"{{ip_load}}\",\"company\":{{company_id}},\"companyFileType\":{\"id\":10,\"description\":\"Registro de Empresa\",\"fileTypeName\":\"REGISTRO\"}}",
+                  "type": "text",
+                  "description": "JSON con metadata del archivo (CompanyFileDTORequest)"
+                }
+              ]
+            },
+            "description": "Sube un archivo PDF de empresa y registra el cambio en BD.\n\n**Roles requeridos:** carga (ADMINISTRADOR, EMPRESA, OPERARIO)\n\n**Respuesta exitosa:** 201 Created — `{ savedFile: { ... } }`"
+          },
+          "response": [
+            {
+              "name": "201 Created — archivo guardado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": { "raw": "{{base_url}}/api/companyfile/upload", "host": ["{{base_url}}"], "path": ["api", "companyfile", "upload"] }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"savedFile\":{\"id\":1,\"fileName\":\"abc123_documento.pdf\",\"originalFileName\":\"documento.pdf\",\"state\":1,\"company\":1}}"
+            },
+            {
+              "name": "400 Bad Request — JSON inválido",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": { "raw": "{{base_url}}/api/companyfile/upload", "host": ["{{base_url}}"], "path": ["api", "companyfile", "upload"] }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"status\":400,\"error\":\"Bad Request\",\"message\":\"El formato del JSON de información del archivo es inválido\",\"path\":\"/api/companyfile/upload\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get Active File Name by Company and Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/companyfile/upload/file/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "companyfile", "upload", "file", "{{company_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": 10,\n  \"description\": \"Registro de Empresa\",\n  \"fileTypeName\": \"REGISTRO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Retorna el nombre del archivo activo de una empresa según el tipo de archivo (CompanyFileType).\n\n**Path param:** `{id}` — ID de la empresa\n\n**Roles requeridos:** todos (ADMINISTRADOR, EMPRESA, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — `{ fileName: \"...\" }`"
+          },
+          "response": [
+            {
+              "name": "200 OK — nombre del archivo",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/companyfile/upload/file/{{company_id}}", "host": ["{{base_url}}"], "path": ["api", "companyfile", "upload", "file", "{{company_id}}"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"fileName\":\"abc123_documento.pdf\"}"
+            }
+          ]
+        },
+        {
+          "name": "List Active Company Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/listofcompanyfiles/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "listofcompanyfiles", "{{company_id}}"]
+            },
+            "description": "Retorna el listado de archivos activos (state=1) de una empresa.\n\n**Path param:** `{id}` — ID de la empresa\n\n**Roles requeridos:** todos (ADMINISTRADOR, EMPRESA, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — lista de CompanyFileDTOResponse\n\n**Error:** 404 si no hay archivos"
+          },
+          "response": [
+            {
+              "name": "200 OK — lista de archivos",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/api/listofcompanyfiles/{{company_id}}", "host": ["{{base_url}}"], "path": ["api", "listofcompanyfiles", "{{company_id}}"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{\"id\":1,\"originalFileName\":\"documento.pdf\",\"state\":1,\"company\":1,\"companyFileType\":{\"id\":10,\"description\":\"Registro de Empresa\",\"fileTypeName\":\"REGISTRO\"}}]"
+            },
+            {
+              "name": "404 Not Found — sin archivos",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/api/listofcompanyfiles/{{company_id}}", "host": ["{{base_url}}"], "path": ["api", "listofcompanyfiles", "{{company_id}}"] }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"status\":404,\"error\":\"Not Found\",\"message\":\"No hay archivos de la empresa en la BD\",\"path\":\"/api/listofcompanyfiles/1\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get Company File PDF",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/companyfilepdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "companyfilepdf"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{company_file_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Retorna el PDF de un archivo de empresa como arreglo de bytes (application/pdf).\n\n**Roles requeridos:** todos (ADMINISTRADOR, EMPRESA, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — Content-Type: application/pdf"
+          },
+          "response": [
+            {
+              "name": "200 OK — PDF en bytes",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/companyfilepdf", "host": ["{{base_url}}"], "path": ["api", "companyfilepdf"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                { "key": "Content-Type", "value": "application/pdf" },
+                { "key": "Content-Disposition", "value": "inline; filename=\"archivo.pdf\"" }
+              ],
+              "body": "[bytes del PDF]"
+            },
+            {
+              "name": "500 Internal Server Error — archivo no encontrado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/api/companyfilepdf", "host": ["{{base_url}}"], "path": ["api", "companyfilepdf"] }
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"status\":500,\"error\":\"Internal Server Error\",\"message\":\"Error al intentar obtener el archivo\",\"path\":\"/api/companyfilepdf\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FilesSigned",
+      "description": "Endpoints de consulta y descarga de archivos firmados (FilesSignedRestController — /load/filessigned).",
+      "item": [
+        {
+          "name": "List Active Signed Files by Company",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/filessigned/listofcompanysignedfiles/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["filessigned", "listofcompanysignedfiles", "{{company_id}}"]
+            },
+            "description": "Retorna la lista de archivos firmados activos (state=1) de una empresa.\n\n**Path param:** `{id}` — ID de la empresa\n\n**Roles requeridos:** todos (ADMINISTRADOR, EMPRESA, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — lista de FileSigned\n\n**Error:** 404 si no hay archivos firmados"
+          },
+          "response": [
+            {
+              "name": "200 OK — lista de archivos firmados",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/filessigned/listofcompanysignedfiles/{{company_id}}", "host": ["{{base_url}}"], "path": ["filessigned", "listofcompanysignedfiles", "{{company_id}}"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{\"id\":1,\"fileName\":\"signed_doc.pdf\",\"originalFileName\":\"documento_firmado.pdf\",\"state\":1,\"company\":1}]"
+            },
+            {
+              "name": "404 Not Found — sin archivos firmados",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/filessigned/listofcompanysignedfiles/{{company_id}}", "host": ["{{base_url}}"], "path": ["filessigned", "listofcompanysignedfiles", "{{company_id}}"] }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"status\":404,\"error\":\"Not Found\",\"message\":\"No hay archivos firmados de la empresa en la BD\",\"path\":\"/filessigned/listofcompanysignedfiles/1\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get Signed File PDF",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/filessigned/companyfilesignedpdf/{{company_name}}",
+              "host": ["{{base_url}}"],
+              "path": ["filessigned", "companyfilesignedpdf", "{{company_name}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{file_signed_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Retorna el PDF firmado de una empresa como arreglo de bytes.\n\n**Path param:** `{companyName}` — nombre de la empresa (usado para la ruta del directorio)\n\n**Roles requeridos:** todos (ADMINISTRADOR, EMPRESA, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — Content-Type: application/pdf"
+          },
+          "response": [
+            {
+              "name": "200 OK — PDF firmado en bytes",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/filessigned/companyfilesignedpdf/{{company_name}}", "host": ["{{base_url}}"], "path": ["filessigned", "companyfilesignedpdf", "{{company_name}}"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                { "key": "Content-Type", "value": "application/pdf" },
+                { "key": "Content-Disposition", "value": "inline; filename=\"signed.pdf\"" }
+              ],
+              "body": "[bytes del PDF firmado]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FilesToSign",
+      "description": "Endpoints de revisión y carga de archivos pendientes de firma (FilesToSignRestController — /load/filesign).",
+      "item": [
+        {
+          "name": "Get Company Registry Files to Sign",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/filesign/filestosignregistry",
+              "host": ["{{base_url}}"],
+              "path": ["filesign", "filestosignregistry"]
+            },
+            "description": "Retorna el listado de archivos de registro de empresa (tipo 10) activos y pendientes de firma.\n\n**Roles requeridos:** revision (ADMINISTRADOR, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — lista de FileToSignDTOResponse\n\n**Error:** 404 si no hay archivos pendientes"
+          },
+          "response": [
+            {
+              "name": "200 OK — archivos pendientes de firma",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/filesign/filestosignregistry", "host": ["{{base_url}}"], "path": ["filesign", "filestosignregistry"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[{\"id\":1,\"originalFileName\":\"registro.pdf\",\"state\":1,\"company\":1,\"companyFileType\":{\"id\":10,\"description\":\"Registro de Empresa\",\"fileTypeName\":\"REGISTRO\"}}]"
+            },
+            {
+              "name": "404 Not Found — sin archivos pendientes",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/filesign/filestosignregistry", "host": ["{{base_url}}"], "path": ["filesign", "filestosignregistry"] }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"status\":404,\"error\":\"Not Found\",\"message\":\"No hay archivos de registro de empresa para firmar en la BD\",\"path\":\"/filesign/filestosignregistry\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get PDF to Sign",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/filesign/pdftosign",
+              "host": ["{{base_url}}"],
+              "path": ["filesign", "pdftosign"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{file_to_sign_id}}\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Retorna el PDF pendiente de firma como arreglo de bytes.\n\n**Roles requeridos:** revision (ADMINISTRADOR, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — Content-Type: application/pdf"
+          },
+          "response": [
+            {
+              "name": "200 OK — PDF para firmar",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base_url}}/filesign/pdftosign", "host": ["{{base_url}}"], "path": ["filesign", "pdftosign"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                { "key": "Content-Type", "value": "application/pdf" },
+                { "key": "Content-Disposition", "value": "inline; filename=\"registro.pdf\"" }
+              ],
+              "body": "[bytes del PDF]"
+            }
+          ]
+        },
+        {
+          "name": "Upload Signed PDF",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/filesign/uploadsignedpdf",
+              "host": ["{{base_url}}"],
+              "path": ["filesign", "uploadsignedpdf"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Archivo PDF firmado"
+                },
+                {
+                  "key": "fileinfo",
+                  "value": "{\"originalFileName\":\"registro_firmado.pdf\",\"ipLoad\":\"{{ip_load}}\",\"companyName\":\"{{company_name}}\",\"company\":{{company_id}},\"user\":{{user_id}},\"companyFileType\":{\"id\":10,\"description\":\"Registro de Empresa\",\"fileTypeName\":\"REGISTRO\"}}",
+                  "type": "text",
+                  "description": "JSON con metadata del archivo firmado (FileSignedDTORequest)"
+                }
+              ]
+            },
+            "description": "Sube un PDF firmado y lo registra en la base de datos.\n\n**Roles requeridos:** firma-subida (ADMINISTRADOR, OPERARIO)\n\n**Respuesta exitosa:** 201 Created — `{ saveFile: true }`\n\n**Error:** 400 si el archivo está vacío o el JSON es inválido"
+          },
+          "response": [
+            {
+              "name": "201 Created — PDF firmado guardado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": { "raw": "{{base_url}}/filesign/uploadsignedpdf", "host": ["{{base_url}}"], "path": ["filesign", "uploadsignedpdf"] }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"saveFile\":true}"
+            },
+            {
+              "name": "400 Bad Request — archivo vacío",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": { "raw": "{{base_url}}/filesign/uploadsignedpdf", "host": ["{{base_url}}"], "path": ["filesign", "uploadsignedpdf"] }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"status\":400,\"error\":\"Bad Request\",\"message\":\"No hay un archivo pdf firmado para subir\",\"path\":\"/filesign/uploadsignedpdf\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Signs",
+      "description": "Endpoints de gestión de firmas digitales (SignController — /load/signs).",
+      "item": [
+        {
+          "name": "Save or Replace Sign",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/signs/save",
+              "host": ["{{base_url}}"],
+              "path": ["signs", "save"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Imagen de firma (PNG/JPG recomendado)"
+                },
+                {
+                  "key": "company",
+                  "value": "{{company_id}}",
+                  "type": "text",
+                  "description": "ID de la empresa"
+                },
+                {
+                  "key": "user",
+                  "value": "{{user_id}}",
+                  "type": "text",
+                  "description": "ID del usuario (0 = firma de empresa sin usuario)"
+                },
+                {
+                  "key": "ipLoad",
+                  "value": "{{ip_load}}",
+                  "type": "text",
+                  "description": "IP desde donde se carga"
+                },
+                {
+                  "key": "companyName",
+                  "value": "{{company_name}}",
+                  "type": "text",
+                  "description": "Nombre de la empresa (para la ruta de almacenamiento)"
+                }
+              ]
+            },
+            "description": "Guarda o reemplaza la firma activa de una empresa. Si `user=0`, se guarda como firma de empresa.\n\n**Roles requeridos:** firma-guardado (ADMINISTRADOR, EMPRESA)\n\n**Respuesta exitosa:** 201 Created — entidad Sign guardada"
+          },
+          "response": [
+            {
+              "name": "201 Created — firma guardada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": { "raw": "{{base_url}}/signs/save", "host": ["{{base_url}}"], "path": ["signs", "save"] }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\"id\":1,\"fileName\":\"firma_empresa-test.png\",\"filePath\":\"uploads/signs/empresa-test\",\"company\":1,\"user\":null,\"state\":1}"
+            }
+          ]
+        },
+        {
+          "name": "Get Active Sign by Company",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/signs/company/{{sign_company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["signs", "company", "{{sign_company_id}}"]
+            },
+            "description": "Retorna el archivo de imagen de la firma activa de una empresa.\n\n**Path param:** `{companyId}` — ID de la empresa\n\n**Roles requeridos:** todos (ADMINISTRADOR, EMPRESA, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — Content-Type: application/octet-stream (imagen de firma)\n\n**Error:** 404 si no existe firma activa"
+          },
+          "response": [
+            {
+              "name": "200 OK — archivo de firma",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/signs/company/{{sign_company_id}}", "host": ["{{base_url}}"], "path": ["signs", "company", "{{sign_company_id}}"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                { "key": "Content-Type", "value": "application/octet-stream" },
+                { "key": "Content-Disposition", "value": "attachment; filename=\"firma.png\"" }
+              ],
+              "body": "[bytes de la imagen de firma]"
+            },
+            {
+              "name": "404 Not Found — sin firma activa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/signs/company/{{sign_company_id}}", "host": ["{{base_url}}"], "path": ["signs", "company", "{{sign_company_id}}"] }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Get Active Sign by User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/signs/user/{{sign_user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["signs", "user", "{{sign_user_id}}"]
+            },
+            "description": "Retorna el archivo de imagen de la firma activa de un usuario.\n\n**Path param:** `{userId}` — ID del usuario\n\n**Roles requeridos:** todos (ADMINISTRADOR, EMPRESA, OPERARIO, FONDEADOR)\n\n**Respuesta exitosa:** 200 OK — Content-Type: application/octet-stream (imagen de firma)\n\n**Error:** 404 si no existe firma activa para el usuario"
+          },
+          "response": [
+            {
+              "name": "200 OK — archivo de firma del usuario",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/signs/user/{{sign_user_id}}", "host": ["{{base_url}}"], "path": ["signs", "user", "{{sign_user_id}}"] }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "text",
+              "header": [
+                { "key": "Content-Type", "value": "application/octet-stream" },
+                { "key": "Content-Disposition", "value": "attachment; filename=\"firma_usuario.png\"" }
+              ],
+              "body": "[bytes de la imagen de firma]"
+            },
+            {
+              "name": "404 Not Found — sin firma para el usuario",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": { "raw": "{{base_url}}/signs/user/{{sign_user_id}}", "host": ["{{base_url}}"], "path": ["signs", "user", "{{sign_user_id}}"] }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "body": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
