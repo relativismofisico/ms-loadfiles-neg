@@ -1,0 +1,86 @@
+name: Pruebas Funcionales Karate
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: 'Ambiente de pruebas'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [ dev, qa, staging ]
+      suite:
+        description: 'Suite a ejecutar'
+        required: true
+        default: 'regression'
+        type: choice
+        options: [ smoke, regression, full ]
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  functional-tests:
+    name: Karate Functional Tests (${{ github.event.inputs.ambiente || 'dev' }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant Gradle permissions
+        run: chmod +x gradlew
+
+      - name: Ejecutar pruebas funcionales
+        env:
+          AMBIENTE_PIPE: ${{ github.event.inputs.ambiente || 'dev' }}
+          KARATE_JWT_SECRET: ${{ secrets.KARATE_JWT_SECRET }}
+          KARATE_BASE_URL: ${{ secrets.KARATE_BASE_URL }}
+          KARATE_TEST_COMPANY_ID: ${{ secrets.KARATE_TEST_COMPANY_ID || '1' }}
+          KARATE_TEST_USER_ID: ${{ secrets.KARATE_TEST_USER_ID || '1' }}
+          KARATE_TEST_FILE_ID: ${{ secrets.KARATE_TEST_FILE_ID || '1' }}
+          KARATE_TEST_SIGNED_FILE_ID: ${{ secrets.KARATE_TEST_SIGNED_FILE_ID || '1' }}
+          KARATE_TEST_FILE_TO_SIGN_ID: ${{ secrets.KARATE_TEST_FILE_TO_SIGN_ID || '1' }}
+          KARATE_TEST_COMPANY_NAME: ${{ secrets.KARATE_TEST_COMPANY_NAME || 'empresa-test' }}
+        run: |
+          ./gradlew automatedTest \
+            -Pkarate.jwt.secret="${KARATE_JWT_SECRET}" \
+            -Pkarate.base.url="${KARATE_BASE_URL}" \
+            -Pkarate.test.companyId="${KARATE_TEST_COMPANY_ID}" \
+            -Pkarate.test.userId="${KARATE_TEST_USER_ID}" \
+            -Pkarate.test.fileId="${KARATE_TEST_FILE_ID}" \
+            -Pkarate.test.signedFileId="${KARATE_TEST_SIGNED_FILE_ID}" \
+            -Pkarate.test.fileToSignId="${KARATE_TEST_FILE_TO_SIGN_ID}" \
+            -Pkarate.test.companyName="${KARATE_TEST_COMPANY_NAME}"
+
+      - name: Publicar reporte HTML de Karate
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: karate-html-report
+          path: build/reports/tests/automatedTest/
+
+      - name: Publicar reporte JUnit
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: karate-junit-report
+          path: build/test-results/automatedTest/
+
+      - name: Publicar reporte Cucumber
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: karate-cucumber-report
+          path: target/cucumber-html-reports/

@@ -1,0 +1,17 @@
+# Copia este archivo a karate.properties (mismo directorio) y completa los valores.
+# karate.properties está en .gitignore — NUNCA lo commits al repositorio.
+
+# Secreto JWT (mismo valor que security.jwt.secret en application-{env}.yml)
+karate.jwt.secret=REEMPLAZA_CON_EL_JWT_SECRET_DEL_AMBIENTE
+
+# URL base del servicio (opcional — tiene fallback por ambiente en karate-config.js)
+# karate.base.url=http://localhost:8081/load
+
+# IDs de datos de prueba que DEBEN existir en la BD del ambiente objetivo
+karate.test.companyId=1
+karate.test.userId=1
+karate.test.fileId=1
+karate.test.signedFileId=1
+karate.test.fileToSignId=1
+karate.test.companyName=empresa-test
+karate.test.ipLoad=192.168.1.100

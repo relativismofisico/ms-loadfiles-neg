@@ -1,0 +1,16 @@
+{
+  "id": "#number",
+  "fileName": "##string",
+  "originalFileName": "##string",
+  "filePath": "##string",
+  "ipLoad": "##string",
+  "loadTime": "##string",
+  "state": "#number",
+  "company": "#number",
+  "user": "##number",
+  "companyFileType": {
+    "id": "#number",
+    "description": "##string",
+    "fileTypeName": "##string"
+  }
+}

@@ -23,7 +23,13 @@ public class FileToSignServiceImpl implements IFileToSignService {
     @Override
     @Transactional(readOnly = true)
     public List<FileToSign> findByCompanyFileTypeAndState(Long companyFileType, Long state) {
-        return fileToSignDao.findByCompanyFileTypeAndState(companyFileType, state);
+        List<FileToSign> files = fileToSignDao.findByCompanyFileTypeAndState(companyFileType, state);
+        files.forEach(f -> {
+            if (f.getCompanyFileType() != null) {
+                f.getCompanyFileType().getDescription();
+            }
+        });
+        return files;
     }
 
     @Override

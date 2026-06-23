@@ -37,7 +37,13 @@ public class FileSignedServiceImpl implements IFileSignedService {
     @Override
     @Transactional(readOnly = true)
     public List<FileSigned> findByCompanyAndState(Long companyId, Long state) {
-        return fileSignedDao.findByCompanyAndState(companyId, state);
+        List<FileSigned> files = fileSignedDao.findByCompanyAndState(companyId, state);
+        files.forEach(f -> {
+            if (f.getCompanyFileType() != null) {
+                f.getCompanyFileType().getDescription();
+            }
+        });
+        return files;
     }
 
     @Override

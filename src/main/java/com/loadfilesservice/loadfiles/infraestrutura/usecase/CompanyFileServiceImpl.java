@@ -55,7 +55,13 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
     @Override
     @Transactional(readOnly = true)
     public List<CompanyFile> findByCompanyAndState(Long companyId, Long state) {
-        return companyFileDao.findByCompanyAndState(companyId, state);
+        List<CompanyFile> files = companyFileDao.findByCompanyAndState(companyId, state);
+        files.forEach(f -> {
+            if (f.getCompanyFileType() != null) {
+                f.getCompanyFileType().getDescription();
+            }
+        });
+        return files;
     }
 
     @Override
