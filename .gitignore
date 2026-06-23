@@ -1,4 +1,12 @@
 HELP.md
+
+### Gradle ###
+.gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### Maven (Spring Initializr legacy) ###
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -14,7 +22,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -25,22 +33,30 @@ target/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 ### VS Code ###
 .vscode/
 
+### Logs ###
+*.log
+logs/
+
+### Variables de entorno y secretos (NUNCA commitear) ###
+.env
+.env.*
+*.env
+!*.env.example
+
 ### Karate — credenciales locales (NUNCA commitear) ###
 src/automated-test/resources/karate.properties
-.gradle/
 
 ### JMeter — artefactos generados (no commitear) ###
 external-test/jmeter/reports/
 external-test/jmeter/results/
-jmeter.log
+*.jtl
 
 ### Directorios generados por la aplicación ###
 files_registry_signed/
+files_to_sign/
 signatures/
+temp/
