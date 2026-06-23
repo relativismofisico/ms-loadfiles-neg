@@ -1,0 +1,4 @@
+companyId,companyName,fileTypeId
+100,prod_empresa_readonly,1
+200,prod_empresa_readonly2,1
+300,prod_empresa_readonly3,2

@@ -112,6 +112,7 @@ pmd {
     sourceSets = [sourceSets.main]
     ignoreFailures = false
     consoleOutput = true
+
 }
 
 spotbugs {

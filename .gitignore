@@ -35,3 +35,12 @@ build/
 ### Karate — credenciales locales (NUNCA commitear) ###
 src/automated-test/resources/karate.properties
 .gradle/
+
+### JMeter — artefactos generados (no commitear) ###
+external-test/jmeter/reports/
+external-test/jmeter/results/
+jmeter.log
+
+### Directorios generados por la aplicación ###
+files_registry_signed/
+signatures/
