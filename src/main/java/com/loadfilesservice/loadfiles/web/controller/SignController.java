@@ -59,7 +59,6 @@ public class SignController {
         @ApiResponse(responseCode = "500", description = "Error interno del servidor",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PreAuthorize("@rolValidator.hasRol(authentication, 'firma-guardado')")
     @PostMapping("/save")
     public ResponseEntity<?> saveSign(
             @Parameter(description = "Imagen de la firma (PNG, JPG)") @RequestParam("file") MultipartFile file,
@@ -95,7 +94,6 @@ public class SignController {
         @ApiResponse(responseCode = "500", description = "Error al cargar el archivo de firma",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @GetMapping("/company/{companyId}")
     public ResponseEntity<Resource> getActiveSignByCompany(
             @Parameter(description = "ID de la empresa", example = "1") @PathVariable Long companyId) {

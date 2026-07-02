@@ -63,6 +63,9 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.modelmapper:modelmapper:2.4.4")
 
+    // Relleno de formularios PDF (AcroForm)
+    implementation("org.apache.pdfbox:pdfbox:2.0.31")
+
     // Lombok
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

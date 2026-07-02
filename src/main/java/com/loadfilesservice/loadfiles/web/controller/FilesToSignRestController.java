@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,11 +21,13 @@ import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundExce
 import com.loadfilesservice.loadfiles.application.service.IFileSignedService;
 import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.application.service.IFileToSignService;
+import com.loadfilesservice.loadfiles.application.service.IPdfFormFillerService;
 import com.loadfilesservice.loadfiles.domain.FileSigned;
 import com.loadfilesservice.loadfiles.domain.FileToSign;
 import com.loadfilesservice.loadfiles.web.dto.Converter;
 import com.loadfilesservice.loadfiles.web.dto.FileSignedDTORequest;
 import com.loadfilesservice.loadfiles.web.dto.FileToSignDTOResponse;
+import com.loadfilesservice.loadfiles.web.dto.PdfToSignRequestDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -41,7 +44,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,6 +68,8 @@ public class FilesToSignRestController {
 
     private final IFileStorageService fileStorageService;
 
+    private final IPdfFormFillerService pdfFormFillerService;
+
     private final Converter converter;
 
     private final ObjectMapper objectMapper;
@@ -85,7 +89,6 @@ public class FilesToSignRestController {
         @ApiResponse(responseCode = "404", description = "No se encontraron archivos pendientes de firma",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
     @GetMapping(value = "/filestosignregistry", produces = "application/json")
     public ResponseEntity<?> getFileToSignCompanyRegistry() {
 
@@ -118,12 +121,11 @@ public class FilesToSignRestController {
         @ApiResponse(responseCode = "500", description = "Error al obtener o leer el archivo PDF",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PreAuthorize("@rolValidator.hasRol(authentication, 'revision')")
     @PostMapping("/pdftosign")
-    public ResponseEntity<byte[]> getPdfToSign(@Valid @RequestBody FileToSign file) {
+    public ResponseEntity<byte[]> getPdfToSign(@Valid @RequestBody PdfToSignRequestDTO request) {
         Optional<FileToSign> companyFileFounded;
         try {
-            companyFileFounded = this.fileToSignService.findById(file.getId());
+            companyFileFounded = this.fileToSignService.findById(request.getId());
         } catch (Exception e) {
             log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar obtener el archivo", e);
             throw new InternalServerErrorException("Error al intentar obtener el archivo", e);
@@ -150,14 +152,22 @@ public class FilesToSignRestController {
             throw new InternalServerErrorException("Error al intentar obtener el archivo del recurso: " + fileToSign.getFileName(), e);
         }
 
-        byte[] pdfBytes;
+        byte[] templateBytes;
         try {
-            pdfBytes = Files.readAllBytes(fileGetted.toPath());
+            templateBytes = Files.readAllBytes(fileGetted.toPath());
         } catch (IOException e) {
             log.error("[FilesToSignRestController][getPdfToSign][ms-loadfiles-neg] Error al intentar los bytes del archivo: {}",
                     fileToSign.getFileName(), e);
             throw new InternalServerErrorException("Error al intentar los bytes del archivo: " + fileToSign.getFileName(), e);
         }
+
+        Map<String, String> fieldValues = new HashMap<>();
+        fieldValues.put("nombreEmpresa", request.getCompanyName());
+        fieldValues.put("nit", request.getNit());
+        fieldValues.put("nombreRepresentante", request.getRepresentativeName());
+        fieldValues.put("fecha", LocalDate.now().toString());
+
+        byte[] pdfBytes = this.pdfFormFillerService.fill(templateBytes, fieldValues);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
@@ -182,7 +192,6 @@ public class FilesToSignRestController {
         @ApiResponse(responseCode = "500", description = "Error interno del servidor",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PreAuthorize("@rolValidator.hasRol(authentication, 'firma-subida')")
     @PostMapping("/uploadsignedpdf")
     public ResponseEntity<?> uploadSignedPdf(
             @Parameter(description = "Archivo PDF firmado a subir") @RequestParam("file") MultipartFile file,

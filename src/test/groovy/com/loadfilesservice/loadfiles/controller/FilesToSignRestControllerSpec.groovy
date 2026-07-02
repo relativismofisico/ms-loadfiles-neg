@@ -6,11 +6,13 @@ import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundExce
 import com.loadfilesservice.loadfiles.application.service.IFileSignedService
 import com.loadfilesservice.loadfiles.application.service.IFileStorageService
 import com.loadfilesservice.loadfiles.application.service.IFileToSignService
+import com.loadfilesservice.loadfiles.application.service.IPdfFormFillerService
 import com.loadfilesservice.loadfiles.domain.FileSigned
 import com.loadfilesservice.loadfiles.domain.FileToSign
 import com.loadfilesservice.loadfiles.web.controller.FilesToSignRestController
 import com.loadfilesservice.loadfiles.web.dto.Converter
 import com.loadfilesservice.loadfiles.web.dto.FileSignedDTORequest
+import com.loadfilesservice.loadfiles.web.dto.PdfToSignRequestDTO
 import com.loadfilesservice.loadfiles.web.exception.GlobalExceptionHandler
 import org.springframework.core.io.Resource
 import org.springframework.http.MediaType
@@ -28,11 +30,12 @@ class FilesToSignRestControllerSpec extends Specification {
     IFileToSignService fileToSignService = Mock()
     IFileSignedService fileSignedService = Mock()
     IFileStorageService fileStorageService = Mock()
+    IPdfFormFillerService pdfFormFillerService = Mock()
     Converter converter = new Converter()
     ObjectMapper objectMapper = new ObjectMapper()
 
     FilesToSignRestController controller = new FilesToSignRestController(
-        fileToSignService, fileSignedService, fileStorageService, converter, objectMapper)
+        fileToSignService, fileSignedService, fileStorageService, pdfFormFillerService, converter, objectMapper)
 
     MockMvc mockMvc
 
@@ -91,11 +94,15 @@ class FilesToSignRestControllerSpec extends Specification {
         def resource = Mock(Resource)
         resource.getFile() >> tempFile
 
-        def requestFile = new FileToSign()
+        def requestFile = new PdfToSignRequestDTO()
         requestFile.id = 1L
+        requestFile.companyName = "TestCompany"
+        requestFile.nit = "123456789"
+        requestFile.representativeName = "John Doe"
 
         fileToSignService.findById(1L) >> Optional.of(fileToSign)
         fileStorageService.loadFile("tosign.pdf", _) >> resource
+        pdfFormFillerService.fill(_, _) >> "filled pdf".bytes
 
         when:
         def result = mockMvc.perform(
@@ -114,8 +121,11 @@ class FilesToSignRestControllerSpec extends Specification {
 
     def "getPdfToSign - findById throws exception - returns 500"() {
         given:
-        def requestFile = new FileToSign()
+        def requestFile = new PdfToSignRequestDTO()
         requestFile.id = 99L
+        requestFile.companyName = "TestCompany"
+        requestFile.nit = "123456789"
+        requestFile.representativeName = "John Doe"
 
         fileToSignService.findById(99L) >> { throw new RuntimeException("DB error") }
 
@@ -132,8 +142,11 @@ class FilesToSignRestControllerSpec extends Specification {
 
     def "getPdfToSign - findById returns empty - returns 500"() {
         given:
-        def requestFile = new FileToSign()
+        def requestFile = new PdfToSignRequestDTO()
         requestFile.id = 1L
+        requestFile.companyName = "TestCompany"
+        requestFile.nit = "123456789"
+        requestFile.representativeName = "John Doe"
 
         fileToSignService.findById(1L) >> Optional.empty()
 
@@ -154,8 +167,11 @@ class FilesToSignRestControllerSpec extends Specification {
         fileToSign.id = 1L
         fileToSign.fileName = "tosign.pdf"
 
-        def requestFile = new FileToSign()
+        def requestFile = new PdfToSignRequestDTO()
         requestFile.id = 1L
+        requestFile.companyName = "TestCompany"
+        requestFile.nit = "123456789"
+        requestFile.representativeName = "John Doe"
 
         fileToSignService.findById(1L) >> Optional.of(fileToSign)
         fileStorageService.loadFile("tosign.pdf", _) >> { throw new java.net.MalformedURLException("bad url") }
@@ -180,8 +196,11 @@ class FilesToSignRestControllerSpec extends Specification {
         def resource = Mock(Resource)
         resource.getFile() >> { throw new IOException("cannot get file") }
 
-        def requestFile = new FileToSign()
+        def requestFile = new PdfToSignRequestDTO()
         requestFile.id = 1L
+        requestFile.companyName = "TestCompany"
+        requestFile.nit = "123456789"
+        requestFile.representativeName = "John Doe"
 
         fileToSignService.findById(1L) >> Optional.of(fileToSign)
         fileStorageService.loadFile("tosign.pdf", _) >> resource
@@ -210,8 +229,11 @@ class FilesToSignRestControllerSpec extends Specification {
         def resource = Mock(Resource)
         resource.getFile() >> tempDir
 
-        def requestFile = new FileToSign()
+        def requestFile = new PdfToSignRequestDTO()
         requestFile.id = 1L
+        requestFile.companyName = "TestCompany"
+        requestFile.nit = "123456789"
+        requestFile.representativeName = "John Doe"
 
         fileToSignService.findById(1L) >> Optional.of(fileToSign)
         fileStorageService.loadFile("tosign.pdf", _) >> resource

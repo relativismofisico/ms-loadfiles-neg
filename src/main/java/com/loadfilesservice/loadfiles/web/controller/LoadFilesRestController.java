@@ -84,7 +84,6 @@ public class LoadFilesRestController {
         @ApiResponse(responseCode = "500", description = "Error interno del servidor",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PreAuthorize("@rolValidator.hasRol(authentication, 'carga')")
     @PostMapping(value = "/companyfile/upload", produces = "application/json")
     public ResponseEntity<?> uploadFile(
             @Parameter(description = "Archivo PDF a subir") @RequestParam("file") MultipartFile newfile,
@@ -126,7 +125,6 @@ public class LoadFilesRestController {
         @ApiResponse(responseCode = "500", description = "Error interno al obtener el archivo",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiErrorResponse.class)))
     })
-    @PreAuthorize("@rolValidator.hasRol(authentication, 'todos')")
     @PostMapping("/companyfile/upload/file/{id}")
     public ResponseEntity<?> getFile(
             @Valid @RequestBody CompanyFileType fileType,

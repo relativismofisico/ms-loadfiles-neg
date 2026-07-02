@@ -95,6 +95,8 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
             }
         }
 
+        fileStorageService.createFolder(ConstantVariables.PATH_UPLOADS);
+
         String newFileName;
         try {
             newFileName = fileStorageService.copyFile(file, ConstantVariables.PATH_UPLOADS);
