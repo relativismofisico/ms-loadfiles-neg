@@ -24,6 +24,12 @@ public class Converter {
         response.setIpLoad(companyFile.getIpLoad());
         response.setCompany(companyFile.getCompany());
         response.setCompanyFileType(companyFile.getCompanyFileType());
+        String reviewStatus = companyFile.getReviewStatus();
+        if (reviewStatus == null) {
+            reviewStatus = "PENDIENTE";
+        }
+        response.setReviewStatus(reviewStatus);
+        response.setRejectionReason(companyFile.getRejectionReason());
         return response;
     }
 
@@ -42,7 +48,7 @@ public class Converter {
         response.setId(fileToSign.getId());
         response.setFileName(fileToSign.getFileName());
         response.setFilePath(fileToSign.getFilePath());
-        response.setCompanyFileType(fileToSign.getCompanyFileType());
+        response.setSignDocumentType(fileToSign.getSignDocumentType());
         return response;
     }
 
@@ -53,8 +59,30 @@ public class Converter {
         fileSigned.setIpLoad(fileSignedDTO.getIpLoad());
         fileSigned.setCompany(fileSignedDTO.getCompany());
         fileSigned.setUser(fileSignedDTO.getUser());
-        fileSigned.setCompanyFileType(fileSignedDTO.getCompanyFileType());
+        fileSigned.setSignDocumentType(fileSignedDTO.getSignDocumentType());
         return fileSigned;
+    }
+
+    /** Convierte un FileSigned a su DTO de respuesta. */
+    public FileSignedDTOResponse fileSignedToDTO(FileSigned fileSigned) {
+        FileSignedDTOResponse response = new FileSignedDTOResponse();
+        response.setId(fileSigned.getId());
+        response.setFileName(fileSigned.getFileName());
+        response.setOriginalFileName(fileSigned.getOriginalFileName());
+        if (fileSigned.getLoadTime() != null) {
+            response.setLoadTime(Date.from(fileSigned.getLoadTime()
+                    .atZone(ZoneId.systemDefault()).toInstant()));
+        }
+        response.setIpLoad(fileSigned.getIpLoad());
+        response.setCompany(fileSigned.getCompany());
+        response.setSignDocumentType(fileSigned.getSignDocumentType());
+        String reviewStatus = fileSigned.getReviewStatus();
+        if (reviewStatus == null) {
+            reviewStatus = "PENDIENTE";
+        }
+        response.setReviewStatus(reviewStatus);
+        response.setRejectionReason(fileSigned.getRejectionReason());
+        return response;
     }
 
 }

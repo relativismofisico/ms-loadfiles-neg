@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.loadfilesservice.loadfiles.domain.CompanyFileType;
+import com.loadfilesservice.loadfiles.domain.SignDocumentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -25,7 +25,7 @@ public class FileToSignDTOResponse implements Serializable {
     @Schema(description = "Ruta del directorio donde se almacena el archivo", example = "files_to_sign")
     private String filePath;
 
-    @Schema(description = "Tipo de archivo de empresa")
-    private CompanyFileType companyFileType;
+    @Schema(description = "Tipo de documento a firmar")
+    private SignDocumentType signDocumentType;
 
 }

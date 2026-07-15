@@ -55,7 +55,7 @@ class FilesToSignRestControllerSpec extends Specification {
         file1.fileName = "registry.pdf"
         file1.state = 1L
 
-        fileToSignService.findByCompanyFileTypeAndState(10L, 1L) >> [file1]
+        fileToSignService.findSignableTemplates() >> [file1]
 
         when:
         def result = mockMvc.perform(
@@ -68,7 +68,7 @@ class FilesToSignRestControllerSpec extends Specification {
 
     def "getFileToSignCompanyRegistry - no files - returns 404"() {
         given:
-        fileToSignService.findByCompanyFileTypeAndState(10L, 1L) >> []
+        fileToSignService.findSignableTemplates() >> []
 
         when:
         def result = mockMvc.perform(
@@ -305,5 +305,73 @@ class FilesToSignRestControllerSpec extends Specification {
 
         then:
         result.andExpect(status().isBadRequest())
+    }
+
+    // ─── findAllTemplates ────────────────────────────────────────────────────────
+
+    def "findAllTemplates - returns 200 with list"() {
+        given:
+        def file1 = new FileToSign()
+        file1.id = 1L
+        file1.fileName = "template.pdf"
+
+        fileToSignService.findAllTemplates() >> [file1]
+
+        when:
+        def result = mockMvc.perform(
+            MockMvcRequestBuilders.get("/filesign/templates")
+        )
+
+        then:
+        result.andExpect(status().isOk())
+    }
+
+    def "findAllTemplates - no templates - returns 200 with empty list"() {
+        given:
+        fileToSignService.findAllTemplates() >> []
+
+        when:
+        def result = mockMvc.perform(
+            MockMvcRequestBuilders.get("/filesign/templates")
+        )
+
+        then:
+        result.andExpect(status().isOk())
+    }
+
+    // ─── uploadTemplate ──────────────────────────────────────────────────────────
+
+    def "uploadTemplate - valid file - returns 201"() {
+        given:
+        def saved = new FileToSign()
+        saved.id = 1L
+        saved.fileName = "template.pdf"
+
+        fileToSignService.uploadTemplate(_, 10L, "127.0.0.1") >> saved
+
+        when:
+        def result = mockMvc.perform(
+            MockMvcRequestBuilders.multipart("/filesign/templates")
+                .file(new MockMultipartFile("file", "template.pdf", "application/pdf", "PDF content".bytes))
+                .param("signDocumentTypeId", "10")
+                .param("ipLoad", "127.0.0.1")
+        )
+
+        then:
+        result.andExpect(status().isCreated())
+    }
+
+    def "uploadTemplate - empty file - returns 400"() {
+        when:
+        def result = mockMvc.perform(
+            MockMvcRequestBuilders.multipart("/filesign/templates")
+                .file(new MockMultipartFile("file", new byte[0]))
+                .param("signDocumentTypeId", "10")
+                .param("ipLoad", "127.0.0.1")
+        )
+
+        then:
+        result.andExpect(status().isBadRequest())
+        0 * fileToSignService.uploadTemplate(*_)
     }
 }

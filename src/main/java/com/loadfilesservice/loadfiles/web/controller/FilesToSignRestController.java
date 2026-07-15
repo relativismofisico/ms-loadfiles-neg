@@ -44,6 +44,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,7 +56,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 /** Controlador REST para operaciones sobre archivos pendientes de firma. */
 @Tag(name = "Archivos para Firmar", description = "Operaciones sobre archivos pendientes de firma y carga de firmados")
-@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4400"})
+@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4400", "http://localhost:4500"})
 @RestController
 @RequestMapping("/filesign")
 @RequiredArgsConstructor
@@ -74,9 +75,9 @@ public class FilesToSignRestController {
 
     private final ObjectMapper objectMapper;
 
-    /** Retorna el listado de archivos de registro de empresa pendientes de firma. */
-    @Operation(summary = "Listar archivos de registro pendientes de firma",
-        description = "Retorna los archivos de tipo registro de empresa (tipo 10) pendientes de firma (estado=1). "
+    /** Retorna el listado de plantillas vigentes de todos los tipos de documento a firmar activos. */
+    @Operation(summary = "Listar plantillas vigentes de documentos a firmar",
+        description = "Retorna las plantillas vigentes (estado=1) de todos los tipos de documento a firmar activos. "
             + "Roles requeridos: ADMINISTRADOR, OPERARIO, FONDEADOR.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Lista de archivos pendientes de firma retornada exitosamente",
@@ -92,7 +93,7 @@ public class FilesToSignRestController {
     @GetMapping(value = "/filestosignregistry", produces = "application/json")
     public ResponseEntity<?> getFileToSignCompanyRegistry() {
 
-        List<FileToSign> filesToSign = this.fileToSignService.findByCompanyFileTypeAndState(10L, 1L);
+        List<FileToSign> filesToSign = this.fileToSignService.findSignableTemplates();
 
         if (filesToSign.isEmpty()) {
             log.error("[FilesToSignRestController][getFileToSignCompanyRegistry][ms-loadfiles-neg] "
@@ -166,6 +167,9 @@ public class FilesToSignRestController {
         fieldValues.put("nit", request.getNit());
         fieldValues.put("nombreRepresentante", request.getRepresentativeName());
         fieldValues.put("fecha", LocalDate.now().toString());
+        putIfPresent(fieldValues, "direccionEmpresa", request.getCompanyAddress());
+        putIfPresent(fieldValues, "telefonoEmpresa", request.getCompanyPhone());
+        putIfPresent(fieldValues, "cedulaRepresentante", request.getRepresentativeDocument());
 
         byte[] pdfBytes = this.pdfFormFillerService.fill(templateBytes, fieldValues);
 
@@ -174,6 +178,12 @@ public class FilesToSignRestController {
         headers.setContentDisposition(ContentDisposition.builder("inline").filename(fileToSign.getFileName()).build());
 
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    private void putIfPresent(Map<String, String> fieldValues, String key, String value) {
+        if (value != null) {
+            fieldValues.put(key, value);
+        }
     }
 
     /** Sube un PDF firmado y lo registra en la base de datos. */
@@ -195,7 +205,7 @@ public class FilesToSignRestController {
     @PostMapping("/uploadsignedpdf")
     public ResponseEntity<?> uploadSignedPdf(
             @Parameter(description = "Archivo PDF firmado a subir") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "Información del archivo firmado en JSON. Campos: originalFileName, ipLoad, companyName, company, user, companyFileType")
+            @Parameter(description = "Información del archivo firmado en JSON. Campos: originalFileName, ipLoad, companyName, company, user, signDocumentType")
             @RequestParam("fileinfo") String jsoSignedFile) {
 
         Map<String, Object> response = new HashMap<>();
@@ -218,6 +228,41 @@ public class FilesToSignRestController {
         response.put("saveFile", true);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /** Lista todas las plantillas de firma, para la pantalla de administración. */
+    @Operation(summary = "Listar todas las plantillas de documentos a firmar",
+        description = "Retorna todas las plantillas de firma registradas, sin filtrar por estado ni por tipo. "
+            + "Roles requeridos: ADMINISTRADOR.")
+    @PreAuthorize("@rolValidator.hasRol(authentication, 'administracion')")
+    @GetMapping(value = "/templates", produces = "application/json")
+    public ResponseEntity<List<FileToSignDTOResponse>> findAllTemplates() {
+        List<FileToSignDTOResponse> templates = this.fileToSignService.findAllTemplates().stream()
+                .map(this.converter::fileToSignToDTO)
+                .toList();
+        return ResponseEntity.ok(templates);
+    }
+
+    /** Sube o reemplaza la plantilla PDF de firma de un tipo de documento. */
+    @Operation(summary = "Subir/reemplazar la plantilla PDF de un tipo de documento a firmar",
+        description = "Sube un archivo PDF en formato multipart/form-data como nueva plantilla vigente para el tipo "
+            + "de documento indicado, desactivando la plantilla anterior si existía. Roles requeridos: ADMINISTRADOR.")
+    @PreAuthorize("@rolValidator.hasRol(authentication, 'administracion')")
+    @PostMapping(value = "/templates", produces = "application/json")
+    public ResponseEntity<FileToSignDTOResponse> uploadTemplate(
+            @Parameter(description = "Archivo PDF de la plantilla") @RequestParam("file") MultipartFile file,
+            @Parameter(description = "ID del tipo de documento a firmar") @RequestParam("signDocumentTypeId") Long signDocumentTypeId,
+            @Parameter(description = "IP desde la que se realiza la carga") @RequestParam("ipLoad") String ipLoad) {
+
+        if (file.isEmpty()) {
+            log.error("[FilesToSignRestController][uploadTemplate][loadfiles] No hay un archivo pdf de plantilla para subir");
+            throw new BadRequestException("No hay un archivo pdf de plantilla para subir");
+        }
+
+        FileToSign saved = this.fileToSignService.uploadTemplate(file, signDocumentTypeId, ipLoad);
+        log.info("[FilesToSignRestController][uploadTemplate][loadfiles] Plantilla subida para el tipo de documento {}",
+                signDocumentTypeId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.converter.fileToSignToDTO(saved));
     }
 
 }

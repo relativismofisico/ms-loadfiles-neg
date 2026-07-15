@@ -47,11 +47,17 @@ public class SecurityConfig {
                         "/v3/api-docs",
                         "/load/api/companyfile/upload",
                         "/load/api/companyfile/upload/file/**",
+                        "/load/api/companyfile/company/*/loaded",
+                        "/load/api/companyfile/reupload/**",
                         "/load/filesign/filestosignregistry",
                         "/load/filesign/pdftosign",
                         "/load/filesign/uploadsignedpdf",
                         "/load/signs/save",
-                        "/load/signs/company/*").permitAll()
+                        "/load/signs/company/*",
+                        "/load/api/companyfiletypeapi/applicable",
+                        "/load/api/signdocumenttypeapi/active",
+                        "/load/api/filesigned/reupload/**",
+                        "/load/api/ip").permitAll()
                     .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(this.authenticationEntryPoint)
@@ -64,8 +70,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4300", "http://localhost:4400", "http://localhost:4600"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:4300", "http://localhost:4400", "http://localhost:4500",
+                "http://localhost:4600", "http://localhost:4700"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 

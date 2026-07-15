@@ -49,8 +49,17 @@ public class FileSigned implements Serializable {
     @Column(name = "user_ide")
     private Long user;
 
+    // Independiente de "state" (que solo indica si esta es la versión vigente del archivo):
+    // PENDIENTE/APROBADO/RECHAZADO. Las filas existentes antes de este campo quedan en NULL;
+    // el DTO de respuesta las trata como PENDIENTE (mismo criterio que CompanyFile).
+    @Column(name = "review_status")
+    private String reviewStatus;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "file_type_ide", referencedColumnName = "ide_file_type")
-    private CompanyFileType companyFileType;
+    @JoinColumn(name = "sign_document_type_ide", referencedColumnName = "ide_sign_document_type")
+    private SignDocumentType signDocumentType;
 
 }

@@ -40,7 +40,7 @@ public class FileToSign implements Serializable {
     private Long state;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "file_type_ide", referencedColumnName = "ide_file_type")
-    private CompanyFileType companyFileType;
+    @JoinColumn(name = "sign_document_type_ide", referencedColumnName = "ide_sign_document_type")
+    private SignDocumentType signDocumentType;
 
 }

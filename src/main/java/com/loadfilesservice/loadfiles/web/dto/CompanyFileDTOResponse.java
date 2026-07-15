@@ -35,4 +35,11 @@ public class CompanyFileDTOResponse implements Serializable {
     @Schema(description = "Tipo de archivo de empresa")
     private CompanyFileType companyFileType;
 
+    @Schema(description = "Estado de revisión del documento", example = "PENDIENTE",
+        allowableValues = {"PENDIENTE", "APROBADO", "RECHAZADO"})
+    private String reviewStatus;
+
+    @Schema(description = "Motivo del rechazo (solo presente si reviewStatus es RECHAZADO)")
+    private String rejectionReason;
+
 }

@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: "jdbc:mysql://dbcompany.cn48sgciaax1.us-east-2.rds.amazonaws.com:3306/dbcompany?useSSL=false&serverTimezone=UTC"
+    url: "jdbc:mysql://dbcompany.cn48sgciaax1.us-east-2.rds.amazonaws.com:3306/dbcompany?useSSL=false&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8"
     username: desarrollador
     password: "Juliana1987****"
   jpa:

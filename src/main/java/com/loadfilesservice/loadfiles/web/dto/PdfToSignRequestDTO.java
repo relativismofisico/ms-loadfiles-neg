@@ -30,4 +30,13 @@ public class PdfToSignRequestDTO implements Serializable {
     @NotBlank
     private String representativeName;
 
+    @Schema(description = "Dirección de la empresa")
+    private String companyAddress;
+
+    @Schema(description = "Teléfono de la empresa")
+    private String companyPhone;
+
+    @Schema(description = "Cédula del representante legal")
+    private String representativeDocument;
+
 }

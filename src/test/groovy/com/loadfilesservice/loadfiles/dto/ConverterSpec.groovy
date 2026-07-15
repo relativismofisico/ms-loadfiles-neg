@@ -4,6 +4,7 @@ import com.loadfilesservice.loadfiles.domain.CompanyFile
 import com.loadfilesservice.loadfiles.domain.CompanyFileType
 import com.loadfilesservice.loadfiles.domain.FileSigned
 import com.loadfilesservice.loadfiles.domain.FileToSign
+import com.loadfilesservice.loadfiles.domain.SignDocumentType
 import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTORequest
 import com.loadfilesservice.loadfiles.web.dto.Converter
 import com.loadfilesservice.loadfiles.web.dto.FileSignedDTORequest
@@ -74,13 +75,13 @@ class ConverterSpec extends Specification {
 
     def "fileToSignToDTO - maps all fields"() {
         given:
-        def fileType = new CompanyFileType()
-        fileType.id = 3L
+        def signDocumentType = new SignDocumentType()
+        signDocumentType.id = 3L
         def fileToSign = new FileToSign()
         fileToSign.id = 20L
         fileToSign.fileName = "tosign.pdf"
         fileToSign.filePath = "/path/to/sign"
-        fileToSign.companyFileType = fileType
+        fileToSign.signDocumentType = signDocumentType
 
         when:
         def result = converter.fileToSignToDTO(fileToSign)
@@ -89,19 +90,19 @@ class ConverterSpec extends Specification {
         result.id == 20L
         result.fileName == "tosign.pdf"
         result.filePath == "/path/to/sign"
-        result.companyFileType == fileType
+        result.signDocumentType == signDocumentType
     }
 
     def "fileSignedDtoToFileSigned - maps all fields"() {
         given:
-        def fileType = new CompanyFileType()
-        fileType.id = 4L
+        def signDocumentType = new SignDocumentType()
+        signDocumentType.id = 4L
         def dto = new FileSignedDTORequest()
         dto.originalFileName = "signed_original.pdf"
         dto.ipLoad = "172.16.0.1"
         dto.company = 3L
         dto.user = 8L
-        dto.companyFileType = fileType
+        dto.signDocumentType = signDocumentType
 
         when:
         def result = converter.fileSignedDtoToFileSigned(dto)
@@ -111,6 +112,6 @@ class ConverterSpec extends Specification {
         result.ipLoad == "172.16.0.1"
         result.company == 3L
         result.user == 8L
-        result.companyFileType == fileType
+        result.signDocumentType == signDocumentType
     }
 }

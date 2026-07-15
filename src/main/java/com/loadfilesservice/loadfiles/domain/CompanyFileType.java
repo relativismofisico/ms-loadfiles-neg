@@ -29,4 +29,21 @@ public class CompanyFileType implements Serializable {
     @Column(name = "file_type_name")
     private String fileTypeName;
 
+    /** Si es true, el documento se pide siempre sin importar las operaciones de interés de la empresa. */
+    @Column(name = "es_base")
+    private Boolean esBase = Boolean.FALSE;
+
+    @Column(name = "aplica_factoring")
+    private Boolean aplicaFactoring = Boolean.FALSE;
+
+    @Column(name = "aplica_confirming")
+    private Boolean aplicaConfirming = Boolean.FALSE;
+
+    @Column(name = "aplica_fondeador")
+    private Boolean aplicaFondeador = Boolean.FALSE;
+
+    /** Si es false, el documento no se ofrece más (soft-delete desde la parametrización de administrador). */
+    @Column(name = "activo")
+    private Boolean activo = Boolean.TRUE;
+
 }

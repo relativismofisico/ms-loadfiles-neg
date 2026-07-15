@@ -2,17 +2,26 @@ package com.loadfilesservice.loadfiles.infraestrutura.usecase;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import com.loadfilesservice.loadfiles.application.ConstantVariables;
+import com.loadfilesservice.loadfiles.application.exception.BadRequestException;
 import com.loadfilesservice.loadfiles.application.exception.InternalServerErrorException;
 import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException;
 import com.loadfilesservice.loadfiles.application.service.ICompanyFileService;
 import com.loadfilesservice.loadfiles.application.service.IFileStorageService;
 import com.loadfilesservice.loadfiles.domain.CompanyFile;
 import com.loadfilesservice.loadfiles.domain.CompanyFileType;
+import com.loadfilesservice.loadfiles.domain.DocumentReuploadToken;
+import com.loadfilesservice.loadfiles.domain.event.DestinatarioEmail;
+import com.loadfilesservice.loadfiles.domain.event.NotificacionEmailEvent;
+import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerService;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.ICompanyFileDao;
+import com.loadfilesservice.loadfiles.infraestrutura.persistence.IDocumentReuploadTokenDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,9 +34,21 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class CompanyFileServiceImpl implements ICompanyFileService {
 
+    private static final String REVIEW_STATUS_APROBADO = "APROBADO";
+    private static final String REVIEW_STATUS_RECHAZADO = "RECHAZADO";
+    private static final String REJECTION_EMAIL_SUBJECT = "Documento rechazado";
+    private static final int REUPLOAD_TOKEN_VALID_DAYS = 7;
+    // Pendiente mover a application.yml cuando haya URLs por ambiente (mismo criterio pendiente
+    // en CompanyNotificationServiceImpl de ms-registroempresa-neg para urlRegistro).
+    private static final String REUPLOAD_FRONTEND_BASE_URL = "http://localhost:4300/company/reupload/";
+
     private final ICompanyFileDao companyFileDao;
 
+    private final IDocumentReuploadTokenDao documentReuploadTokenDao;
+
     private final IFileStorageService fileStorageService;
+
+    private final KafkaProducerService kafkaProducerService;
 
     @Override
     @Transactional(readOnly = true)
@@ -123,6 +144,115 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
             throw new InternalServerErrorException(
                     "Error al intentar guardar el registro del archivo en la base de datos: " + newFileName, e);
         }
+    }
+
+    @Override
+    @Transactional
+    public CompanyFile approve(Long id) {
+        CompanyFile companyFile = findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("El archivo no se pudo encontrar en la base de datos"));
+
+        companyFile.setReviewStatus(REVIEW_STATUS_APROBADO);
+        companyFile.setRejectionReason(null);
+
+        return companyFileDao.save(companyFile);
+    }
+
+    @Override
+    @Transactional
+    public CompanyFile reject(Long id, String rejectionReason, String companyEmail, String companyName) {
+        CompanyFile companyFile = findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("El archivo no se pudo encontrar en la base de datos"));
+
+        companyFile.setReviewStatus(REVIEW_STATUS_RECHAZADO);
+        companyFile.setRejectionReason(rejectionReason);
+
+        CompanyFile saved = companyFileDao.save(companyFile);
+
+        DocumentReuploadToken reuploadToken = createReuploadToken(saved, companyName);
+
+        kafkaProducerService.sendNotificacionEmail(
+                buildRejectionEmailEvent(saved, rejectionReason, companyEmail, companyName, reuploadToken));
+
+        return saved;
+    }
+
+    private DocumentReuploadToken createReuploadToken(CompanyFile rejectedFile, String companyName) {
+        DocumentReuploadToken reuploadToken = new DocumentReuploadToken();
+        reuploadToken.setToken(UUID.randomUUID().toString());
+        reuploadToken.setRejectedFile(rejectedFile);
+        reuploadToken.setCompanyName(companyName);
+        reuploadToken.setCreatedAt(LocalDateTime.now());
+        reuploadToken.setExpiresAt(LocalDateTime.now().plusDays(REUPLOAD_TOKEN_VALID_DAYS));
+        reuploadToken.setUsed(false);
+
+        return documentReuploadTokenDao.save(reuploadToken);
+    }
+
+    private NotificacionEmailEvent buildRejectionEmailEvent(
+            CompanyFile companyFile, String rejectionReason, String companyEmail, String companyName,
+            DocumentReuploadToken reuploadToken) {
+        String nombreDocumento = "";
+        if (companyFile.getCompanyFileType() != null) {
+            nombreDocumento = companyFile.getCompanyFileType().getFileTypeName();
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("nombreEmpresa", companyName);
+        data.put("nombreDocumento", nombreDocumento);
+        data.put("motivoRechazo", rejectionReason);
+        data.put("linkCarga", REUPLOAD_FRONTEND_BASE_URL + reuploadToken.getToken());
+
+        DestinatarioEmail destinatario = DestinatarioEmail.builder()
+                .tipoActor("DIRECTO")
+                .rutActor(companyEmail)
+                .build();
+
+        return NotificacionEmailEvent.builder()
+                .idEvento(UUID.randomUUID().toString())
+                .idNegociacion(String.valueOf(companyFile.getCompany()))
+                .tipoNotificacion(REJECTION_EMAIL_SUBJECT)
+                .destinatarios(List.of(destinatario))
+                .asunto(REJECTION_EMAIL_SUBJECT)
+                .data(data)
+                .fecha(LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DocumentReuploadToken validateReuploadToken(String token) {
+        DocumentReuploadToken reuploadToken = documentReuploadTokenDao.findByToken(token)
+                .orElseThrow(() -> new ResourceNotFoundException("El enlace de carga no existe o ya no es válido"));
+
+        if (Boolean.TRUE.equals(reuploadToken.getUsed())) {
+            throw new BadRequestException("Este enlace ya fue utilizado para cargar el documento");
+        }
+
+        if (reuploadToken.getExpiresAt() != null && reuploadToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Este enlace ya expiró, contacta al administrador");
+        }
+
+        return reuploadToken;
+    }
+
+    @Override
+    @Transactional
+    public CompanyFile redeemReuploadToken(String token, MultipartFile file, String ipLoad) {
+        DocumentReuploadToken reuploadToken = validateReuploadToken(token);
+        CompanyFile rejectedFile = reuploadToken.getRejectedFile();
+
+        CompanyFile companyFileBase = new CompanyFile();
+        companyFileBase.setCompany(rejectedFile.getCompany());
+        companyFileBase.setCompanyFileType(rejectedFile.getCompanyFileType());
+        companyFileBase.setIpLoad(ipLoad);
+
+        CompanyFile uploaded = replaceCompanyFile(file, companyFileBase);
+
+        reuploadToken.setUsed(true);
+        documentReuploadTokenDao.save(reuploadToken);
+
+        return uploaded;
     }
 
 }

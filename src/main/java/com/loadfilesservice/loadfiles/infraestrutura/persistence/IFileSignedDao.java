@@ -9,8 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 /** Repositorio JPA para la entidad FileSigned. */
 public interface IFileSignedDao extends JpaRepository<FileSigned, Long> {
 
-    /** Busca archivos firmados por empresa y estado cargando companyFileType en la misma consulta. */
-    @Query("select f from FileSigned f join fetch f.companyFileType where f.company = ?1 and f.state = ?2")
+    /** Busca archivos firmados por empresa y estado cargando signDocumentType en la misma consulta. */
+    @Query("select f from FileSigned f join fetch f.signDocumentType where f.company = ?1 and f.state = ?2")
     List<FileSigned> findByCompanyAndState(Long companyId, Long state);
 
 }

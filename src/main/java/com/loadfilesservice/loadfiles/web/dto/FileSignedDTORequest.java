@@ -2,7 +2,7 @@ package com.loadfilesservice.loadfiles.web.dto;
 
 import java.io.Serializable;
 
-import com.loadfilesservice.loadfiles.domain.CompanyFileType;
+import com.loadfilesservice.loadfiles.domain.SignDocumentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class FileSignedDTORequest implements Serializable {
     @Schema(description = "ID del usuario que realiza la carga", example = "5")
     private Long user;
 
-    @Schema(description = "Tipo de archivo de empresa")
-    private CompanyFileType companyFileType;
+    @Schema(description = "Tipo de documento a firmar")
+    private SignDocumentType signDocumentType;
 
 }

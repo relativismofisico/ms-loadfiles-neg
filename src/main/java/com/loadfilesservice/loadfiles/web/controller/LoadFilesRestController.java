@@ -23,6 +23,7 @@ import com.loadfilesservice.loadfiles.domain.CompanyFile;
 import com.loadfilesservice.loadfiles.domain.CompanyFileType;
 import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTORequest;
 import com.loadfilesservice.loadfiles.web.dto.CompanyFileDTOResponse;
+import com.loadfilesservice.loadfiles.web.dto.CompanyFileRejectRequestDTO;
 import com.loadfilesservice.loadfiles.web.dto.Converter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,6 +44,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -53,7 +55,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 /** Controlador REST para la carga y consulta de archivos de empresa. */
 @Tag(name = "Archivos de Empresa", description = "Operaciones de carga y consulta de archivos de empresa")
-@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4600"})
+@CrossOrigin(origins = {"http://localhost:4300", "http://localhost:4500", "http://localhost:4600", "http://localhost:4700"})
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -179,6 +181,69 @@ public class LoadFilesRestController {
 
             return ResponseEntity.status(HttpStatus.OK).body(companyFilesDTO);
         }
+    }
+
+    /**
+     * Retorna el listado de archivos activos de una empresa (endpoint público, sin JWT).
+     * Usado por el formulario anónimo de registro para consultar en una sola petición qué
+     * documentos ya fueron cargados, en vez de una petición por cada tipo de documento
+     * (evita hasta 13 peticiones POST, cada una con su propio preflight CORS).
+     */
+    @Operation(summary = "Lista los archivos ya cargados de una empresa",
+        description = "Endpoint público usado por el formulario de registro de empresa. A diferencia de "
+            + "/listofcompanyfiles/{id}, no requiere JWT y retorna una lista vacía (no 404) cuando la "
+            + "empresa aún no ha cargado ningún documento.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de archivos retornada exitosamente",
+            content = @Content(mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = CompanyFileDTOResponse.class))))
+    })
+    @GetMapping(value = "/companyfile/company/{id}/loaded", produces = "application/json")
+    public ResponseEntity<List<CompanyFileDTOResponse>> getLoadedFiles(
+            @Parameter(description = "ID de la empresa", example = "1") @PathVariable Long id) {
+        List<CompanyFile> companyFiles = this.companyFileService.findByCompanyAndState(id, 1L);
+
+        List<CompanyFileDTOResponse> companyFilesDTO = companyFiles.stream()
+                .map(this.converter::companyFileToDTO)
+                .toList();
+
+        return ResponseEntity.ok(companyFilesDTO);
+    }
+
+    /** Aprueba un documento cargado por una empresa. */
+    @Operation(summary = "Aprobar un documento cargado",
+        description = "Marca el documento como aprobado. Roles requeridos: ADMINISTRADOR.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Documento aprobado exitosamente"),
+        @ApiResponse(responseCode = "404", description = "El documento no existe"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @PreAuthorize("@rolValidator.hasRol(authentication, 'administracion')")
+    @PatchMapping(value = "/companyfile/{id}/approve", produces = "application/json")
+    public ResponseEntity<CompanyFileDTOResponse> approveFile(
+            @Parameter(description = "ID del archivo", example = "1") @PathVariable Long id) {
+        CompanyFile approved = this.companyFileService.approve(id);
+        return ResponseEntity.ok(this.converter.companyFileToDTO(approved));
+    }
+
+    /** Rechaza un documento cargado por una empresa y le notifica el motivo por correo. */
+    @Operation(summary = "Rechazar un documento cargado",
+        description = "Marca el documento como rechazado y notifica por correo a la empresa con el motivo "
+            + "indicado. Roles requeridos: ADMINISTRADOR.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Documento rechazado exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Falta el motivo del rechazo o el correo de la empresa"),
+        @ApiResponse(responseCode = "404", description = "El documento no existe"),
+        @ApiResponse(responseCode = "500", description = "Error interno del servidor")
+    })
+    @PreAuthorize("@rolValidator.hasRol(authentication, 'administracion')")
+    @PatchMapping(value = "/companyfile/{id}/reject", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<CompanyFileDTOResponse> rejectFile(
+            @Parameter(description = "ID del archivo", example = "1") @PathVariable Long id,
+            @Valid @RequestBody CompanyFileRejectRequestDTO request) {
+        CompanyFile rejected = this.companyFileService.reject(
+                id, request.getRejectionReason(), request.getCompanyEmail(), request.getCompanyName());
+        return ResponseEntity.ok(this.converter.companyFileToDTO(rejected));
     }
 
     /** Retorna el PDF de un archivo de empresa como arreglo de bytes. */

@@ -50,6 +50,15 @@ public class CompanyFile implements Serializable {
     @Column(name = "state")
     private Long state;
 
+    // Independiente de "state" (que solo indica si esta es la versión vigente
+    // del archivo): PENDIENTE/APROBADO/RECHAZADO. Las filas existentes antes de
+    // este campo quedan en NULL; el DTO de respuesta las trata como PENDIENTE.
+    @Column(name = "review_status")
+    private String reviewStatus;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "file_type_ide", referencedColumnName = "ide_file_type")
     private CompanyFileType companyFileType;
