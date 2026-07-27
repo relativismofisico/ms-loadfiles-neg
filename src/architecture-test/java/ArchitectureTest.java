@@ -46,7 +46,7 @@ public class ArchitectureTest {
         ArchRule rule = classes()
                 .that().resideInAPackage("..infraestrutura..")
                 .should().onlyDependOnClassesThat()
-                .resideInAnyPackage("..infraestrutura..", "..application..", "..domain..", "java..", "javax..", "jakarta..", "org.springframework..", "io.swagger.v3.oas..", "com.fasterxml.jackson..", "io.jsonwebtoken..", "lombok..", "org.slf4j..")
+                .resideInAnyPackage("..infraestrutura..", "..application..", "..domain..", "java..", "javax..", "jakarta..", "org.springframework..", "io.swagger.v3.oas..", "com.fasterxml.jackson..", "io.jsonwebtoken..", "lombok..", "org.slf4j..", "org.apache.kafka..", "org.apache.pdfbox..")
                 .allowEmptyShould(true);
 
         rule.check(classes);

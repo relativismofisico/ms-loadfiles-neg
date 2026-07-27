@@ -19,7 +19,7 @@ import com.loadfilesservice.loadfiles.domain.CompanyFileType;
 import com.loadfilesservice.loadfiles.domain.DocumentReuploadToken;
 import com.loadfilesservice.loadfiles.domain.event.DestinatarioEmail;
 import com.loadfilesservice.loadfiles.domain.event.NotificacionEmailEvent;
-import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerService;
+import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerAdapter;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.ICompanyFileDao;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IDocumentReuploadTokenDao;
 import lombok.RequiredArgsConstructor;
@@ -48,7 +48,7 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
 
     private final IFileStorageService fileStorageService;
 
-    private final KafkaProducerService kafkaProducerService;
+    private final KafkaProducerAdapter kafkaProducerService;
 
     @Override
     @Transactional(readOnly = true)

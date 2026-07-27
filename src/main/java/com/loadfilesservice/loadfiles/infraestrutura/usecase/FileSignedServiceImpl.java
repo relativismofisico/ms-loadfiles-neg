@@ -18,7 +18,7 @@ import com.loadfilesservice.loadfiles.domain.FileSigned;
 import com.loadfilesservice.loadfiles.domain.SignedFileReuploadToken;
 import com.loadfilesservice.loadfiles.domain.event.DestinatarioEmail;
 import com.loadfilesservice.loadfiles.domain.event.NotificacionEmailEvent;
-import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerService;
+import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerAdapter;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IFileSignedDao;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.ISignedFileReuploadTokenDao;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +46,7 @@ public class FileSignedServiceImpl implements IFileSignedService {
 
     private final IFileStorageService fileStorageService;
 
-    private final KafkaProducerService kafkaProducerService;
+    private final KafkaProducerAdapter kafkaProducerService;
 
     @Override
     @Transactional
