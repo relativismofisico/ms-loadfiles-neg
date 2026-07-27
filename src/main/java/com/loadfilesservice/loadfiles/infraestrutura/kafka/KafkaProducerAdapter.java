@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 /** Productor de mensajes Kafka del microservicio. */
 @Service
 @RequiredArgsConstructor
-public class KafkaProducerService {
+public class KafkaProducerAdapter {
 
     private static final String TOPIC_NOTIFICACION_EMAIL = "notificacion.email";
 

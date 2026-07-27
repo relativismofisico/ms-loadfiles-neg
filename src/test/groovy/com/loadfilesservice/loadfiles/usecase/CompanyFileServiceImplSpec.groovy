@@ -8,7 +8,7 @@ import com.loadfilesservice.loadfiles.domain.CompanyFile
 import com.loadfilesservice.loadfiles.domain.CompanyFileType
 import com.loadfilesservice.loadfiles.domain.DocumentReuploadToken
 import com.loadfilesservice.loadfiles.domain.event.NotificacionEmailEvent
-import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerService
+import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerAdapter
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.ICompanyFileDao
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IDocumentReuploadTokenDao
 import com.loadfilesservice.loadfiles.infraestrutura.usecase.CompanyFileServiceImpl
@@ -20,7 +20,7 @@ class CompanyFileServiceImplSpec extends Specification {
     ICompanyFileDao companyFileDao = Mock()
     IDocumentReuploadTokenDao documentReuploadTokenDao = Mock()
     IFileStorageService fileStorageService = Mock()
-    KafkaProducerService kafkaProducerService = Mock()
+    KafkaProducerAdapter kafkaProducerService = Mock()
     CompanyFileServiceImpl service = new CompanyFileServiceImpl(
             companyFileDao, documentReuploadTokenDao, fileStorageService, kafkaProducerService)
 

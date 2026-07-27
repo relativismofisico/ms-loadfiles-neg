@@ -7,7 +7,7 @@ import com.loadfilesservice.loadfiles.application.service.IFileStorageService
 import com.loadfilesservice.loadfiles.domain.FileSigned
 import com.loadfilesservice.loadfiles.domain.SignDocumentType
 import com.loadfilesservice.loadfiles.domain.SignedFileReuploadToken
-import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerService
+import com.loadfilesservice.loadfiles.infraestrutura.kafka.KafkaProducerAdapter
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IFileSignedDao
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.ISignedFileReuploadTokenDao
 import com.loadfilesservice.loadfiles.infraestrutura.usecase.FileSignedServiceImpl
@@ -21,7 +21,7 @@ class FileSignedServiceImplSpec extends Specification {
     IFileSignedDao fileSignedDao = Mock()
     ISignedFileReuploadTokenDao signedFileReuploadTokenDao = Mock()
     IFileStorageService fileStorageService = Mock()
-    KafkaProducerService kafkaProducerService = Mock()
+    KafkaProducerAdapter kafkaProducerService = Mock()
     FileSignedServiceImpl service = new FileSignedServiceImpl(
         fileSignedDao, signedFileReuploadTokenDao, fileStorageService, kafkaProducerService)
 
