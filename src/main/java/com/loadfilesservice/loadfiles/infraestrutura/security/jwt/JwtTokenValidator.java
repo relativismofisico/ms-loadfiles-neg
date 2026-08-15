@@ -4,6 +4,7 @@ import javax.crypto.SecretKey;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class JwtTokenValidator {
 
+    private static final String REFRESH_TYP = "refresh";
+
     private final SecretKey secretKey;
 
     /** Inicializa el validador con la clave secreta configurada. */
@@ -29,11 +32,24 @@ public class JwtTokenValidator {
 
     /** Extrae y verifica los claims del token. */
     public Claims extractClaims(String token) {
-        return Jwts.parser()
+        Claims claims = Jwts.parser()
                 .verifyWith(this.secretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+
+        // Un refresh token (emitido por ms-security-util, mismo secreto, mismos claims que
+        // un access token) nunca es válido como credencial de acceso normal — rechazar SOLO
+        // si el claim está presente y vale "refresh": los tokens emitidos antes de que
+        // existiera ese claim siguen validando igual, retrocompatible. El filtro captura
+        // JwtException/Exception genérico y responde 401.
+        boolean isRefreshToken = REFRESH_TYP.equals(claims.get("typ"));
+        if (isRefreshToken) {
+            log.warn("[JwtTokenValidator] Token de tipo refresh usado como credencial de acceso");
+            throw new JwtException("El token es un refresh token, no puede usarse como credencial de acceso.");
+        }
+
+        return claims;
     }
 
     /** Extrae el nombre de usuario del token. */
