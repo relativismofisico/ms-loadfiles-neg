@@ -23,6 +23,7 @@ import com.loadfilesservice.loadfiles.infraestrutura.persistence.IFileSignedDao;
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.ISignedFileReuploadTokenDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,8 +38,10 @@ public class FileSignedServiceImpl implements IFileSignedService {
     private static final String REVIEW_STATUS_RECHAZADO = "RECHAZADO";
     private static final String REJECTION_EMAIL_SUBJECT = "Documento firmado rechazado";
     private static final int REUPLOAD_TOKEN_VALID_DAYS = 7;
-    // Pendiente mover a application.yml, mismo criterio pendiente en CompanyFileServiceImpl.
-    private static final String REUPLOAD_FRONTEND_BASE_URL = "http://localhost:4300/company/signed-reupload/";
+    private static final String SIGNED_REUPLOAD_PATH = "/reupload/";
+
+    @Value("${app.frontend.firmar-documentos-base-url}")
+    private String firmarDocumentosBaseUrl;
 
     private final IFileSignedDao fileSignedDao;
 
@@ -158,7 +161,7 @@ public class FileSignedServiceImpl implements IFileSignedService {
         data.put("nombreEmpresa", companyName);
         data.put("nombreDocumento", nombreDocumento);
         data.put("motivoRechazo", rejectionReason);
-        data.put("linkCarga", REUPLOAD_FRONTEND_BASE_URL + reuploadToken.getToken());
+        data.put("linkCarga", firmarDocumentosBaseUrl + SIGNED_REUPLOAD_PATH + reuploadToken.getToken());
 
         DestinatarioEmail destinatario = DestinatarioEmail.builder()
                 .tipoActor("DIRECTO")

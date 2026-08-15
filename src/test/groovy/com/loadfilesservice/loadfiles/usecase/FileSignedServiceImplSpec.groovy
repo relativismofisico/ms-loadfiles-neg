@@ -25,6 +25,10 @@ class FileSignedServiceImplSpec extends Specification {
     FileSignedServiceImpl service = new FileSignedServiceImpl(
         fileSignedDao, signedFileReuploadTokenDao, fileStorageService, kafkaProducerService)
 
+    def setup() {
+        service.firmarDocumentosBaseUrl = "http://localhost:4400"
+    }
+
     def "save - delegates to dao"() {
         given:
         def fileSigned = new FileSigned()
@@ -189,7 +193,7 @@ class FileSignedServiceImplSpec extends Specification {
             event.asunto == "Documento firmado rechazado" &&
             event.data.nombreDocumento == "Términos y uso de la plataforma" &&
             event.data.motivoRechazo == "Firma ilegible" &&
-            (event.data.linkCarga as String).contains("/company/signed-reupload/")
+            (event.data.linkCarga as String).contains("/reupload/")
         })
     }
 

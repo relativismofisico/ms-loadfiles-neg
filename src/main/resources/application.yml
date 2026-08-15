@@ -37,6 +37,11 @@ spring:
 topics:
   notificacion-email: notificacion.email
 
+app:
+  frontend:
+    registro-empresa-base-url: http://localhost:4300
+    firmar-documentos-base-url: http://localhost:4400
+
 server:
   port: 8081
 

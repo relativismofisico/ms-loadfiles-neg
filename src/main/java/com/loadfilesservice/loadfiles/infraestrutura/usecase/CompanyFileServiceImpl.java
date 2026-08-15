@@ -24,6 +24,7 @@ import com.loadfilesservice.loadfiles.infraestrutura.persistence.ICompanyFileDao
 import com.loadfilesservice.loadfiles.infraestrutura.persistence.IDocumentReuploadTokenDao;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,9 +39,10 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
     private static final String REVIEW_STATUS_RECHAZADO = "RECHAZADO";
     private static final String REJECTION_EMAIL_SUBJECT = "Documento rechazado";
     private static final int REUPLOAD_TOKEN_VALID_DAYS = 7;
-    // Pendiente mover a application.yml cuando haya URLs por ambiente (mismo criterio pendiente
-    // en CompanyNotificationServiceImpl de ms-registroempresa-neg para urlRegistro).
-    private static final String REUPLOAD_FRONTEND_BASE_URL = "http://localhost:4300/company/reupload/";
+    private static final String REUPLOAD_PATH = "/company/reupload/";
+
+    @Value("${app.frontend.registro-empresa-base-url}")
+    private String registroEmpresaBaseUrl;
 
     private final ICompanyFileDao companyFileDao;
 
@@ -201,7 +203,7 @@ public class CompanyFileServiceImpl implements ICompanyFileService {
         data.put("nombreEmpresa", companyName);
         data.put("nombreDocumento", nombreDocumento);
         data.put("motivoRechazo", rejectionReason);
-        data.put("linkCarga", REUPLOAD_FRONTEND_BASE_URL + reuploadToken.getToken());
+        data.put("linkCarga", registroEmpresaBaseUrl + REUPLOAD_PATH + reuploadToken.getToken());
 
         DestinatarioEmail destinatario = DestinatarioEmail.builder()
                 .tipoActor("DIRECTO")

@@ -18,6 +18,9 @@ public class SignedReuploadInfoDTOResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @Schema(description = "Identificador de la empresa dueña del documento", example = "78")
+    private Long companyId;
+
     @Schema(description = "Nombre de la empresa dueña del documento", example = "Acme S.A.S.")
     private String companyName;
 

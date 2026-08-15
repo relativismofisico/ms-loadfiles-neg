@@ -24,6 +24,10 @@ class CompanyFileServiceImplSpec extends Specification {
     CompanyFileServiceImpl service = new CompanyFileServiceImpl(
             companyFileDao, documentReuploadTokenDao, fileStorageService, kafkaProducerService)
 
+    def setup() {
+        service.registroEmpresaBaseUrl = "http://localhost:4300"
+    }
+
     def "findById - returns result when file exists"() {
         given:
         def companyFile = new CompanyFile()

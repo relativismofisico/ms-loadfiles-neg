@@ -3,12 +3,14 @@ package com.loadfilesservice.loadfiles.controller
 import com.loadfilesservice.loadfiles.application.exception.BadRequestException
 import com.loadfilesservice.loadfiles.application.exception.ResourceNotFoundException
 import com.loadfilesservice.loadfiles.application.service.IFileSignedService
+import com.loadfilesservice.loadfiles.application.service.IFileStorageService
 import com.loadfilesservice.loadfiles.domain.FileSigned
 import com.loadfilesservice.loadfiles.domain.SignDocumentType
 import com.loadfilesservice.loadfiles.domain.SignedFileReuploadToken
 import com.loadfilesservice.loadfiles.web.controller.SignedFileReuploadRestController
 import com.loadfilesservice.loadfiles.web.dto.Converter
 import com.loadfilesservice.loadfiles.web.exception.GlobalExceptionHandler
+import org.springframework.core.io.Resource
 import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
@@ -21,9 +23,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SignedFileReuploadRestControllerSpec extends Specification {
 
     IFileSignedService fileSignedService = Mock()
+    IFileStorageService fileStorageService = Mock()
     Converter converter = new Converter()
 
-    SignedFileReuploadRestController controller = new SignedFileReuploadRestController(fileSignedService, converter)
+    SignedFileReuploadRestController controller =
+        new SignedFileReuploadRestController(fileSignedService, fileStorageService, converter)
 
     MockMvc mockMvc
 
@@ -42,6 +46,7 @@ class SignedFileReuploadRestControllerSpec extends Specification {
         signDocumentType.name = "Términos y uso de la plataforma"
 
         def rejectedFile = new FileSigned()
+        rejectedFile.company = 78L
         rejectedFile.signDocumentType = signDocumentType
         rejectedFile.rejectionReason = "Firma ilegible"
 
@@ -56,9 +61,102 @@ class SignedFileReuploadRestControllerSpec extends Specification {
 
         then:
         result.andExpect(status().isOk())
+              .andExpect(jsonPath('$.companyId').value(78))
               .andExpect(jsonPath('$.companyName').value("Acme"))
               .andExpect(jsonPath('$.documentTypeName').value("Términos y uso de la plataforma"))
               .andExpect(jsonPath('$.rejectionReason').value("Firma ilegible"))
+    }
+
+    // ─── getRejectedFilePdf ───────────────────────────────────────────────────────
+
+    def "getRejectedFilePdf - valid token - returns 200 with the pdf bytes"() {
+        given:
+        def rejectedFile = new FileSigned()
+        rejectedFile.fileName = "rejected.pdf"
+        rejectedFile.filePath = "files_registry_signed/Acme"
+
+        def token = new SignedFileReuploadToken()
+        token.rejectedFile = rejectedFile
+        fileSignedService.validateReuploadToken("abc") >> token
+
+        def tempFile = File.createTempFile("rejected_pdf", ".pdf")
+        tempFile.text = "PDF rechazado"
+
+        def resource = Mock(Resource)
+        resource.getFile() >> tempFile
+        fileStorageService.loadFile("rejected.pdf", "files_registry_signed/Acme") >> resource
+
+        when:
+        def result = mockMvc.perform(MockMvcRequestBuilders.get("/api/filesigned/reupload/abc/pdf"))
+
+        then:
+        result.andExpect(status().isOk())
+              .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                  .bytes("PDF rechazado".bytes))
+    }
+
+    def "getRejectedFilePdf - token not found - returns 404"() {
+        given:
+        fileSignedService.validateReuploadToken("missing") >> { throw new ResourceNotFoundException("El enlace de carga no existe o ya no es válido") }
+
+        when:
+        def result = mockMvc.perform(MockMvcRequestBuilders.get("/api/filesigned/reupload/missing/pdf"))
+
+        then:
+        result.andExpect(status().isNotFound())
+    }
+
+    def "getRejectedFilePdf - token expired - returns 400"() {
+        given:
+        fileSignedService.validateReuploadToken("expired") >> { throw new BadRequestException("Este enlace ya expiró, contacta al administrador") }
+
+        when:
+        def result = mockMvc.perform(MockMvcRequestBuilders.get("/api/filesigned/reupload/expired/pdf"))
+
+        then:
+        result.andExpect(status().isBadRequest())
+    }
+
+    def "getRejectedFilePdf - loadFile throws MalformedURLException - returns 500"() {
+        given:
+        def rejectedFile = new FileSigned()
+        rejectedFile.fileName = "rejected.pdf"
+        rejectedFile.filePath = "files_registry_signed/Acme"
+
+        def token = new SignedFileReuploadToken()
+        token.rejectedFile = rejectedFile
+        fileSignedService.validateReuploadToken("abc") >> token
+
+        fileStorageService.loadFile("rejected.pdf", "files_registry_signed/Acme") >> {
+            throw new java.net.MalformedURLException("bad url")
+        }
+
+        when:
+        def result = mockMvc.perform(MockMvcRequestBuilders.get("/api/filesigned/reupload/abc/pdf"))
+
+        then:
+        result.andExpect(status().isInternalServerError())
+    }
+
+    def "getRejectedFilePdf - resource.getFile() throws IOException - returns 500"() {
+        given:
+        def rejectedFile = new FileSigned()
+        rejectedFile.fileName = "rejected.pdf"
+        rejectedFile.filePath = "files_registry_signed/Acme"
+
+        def token = new SignedFileReuploadToken()
+        token.rejectedFile = rejectedFile
+        fileSignedService.validateReuploadToken("abc") >> token
+
+        def resource = Mock(Resource)
+        resource.getFile() >> { throw new IOException("cannot get file") }
+        fileStorageService.loadFile("rejected.pdf", "files_registry_signed/Acme") >> resource
+
+        when:
+        def result = mockMvc.perform(MockMvcRequestBuilders.get("/api/filesigned/reupload/abc/pdf"))
+
+        then:
+        result.andExpect(status().isInternalServerError())
     }
 
     def "getReuploadInfo - token not found - returns 404"() {
