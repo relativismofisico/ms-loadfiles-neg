@@ -2,6 +2,7 @@ package com.loadfilesservice.loadfiles.security.jwt
 
 import com.loadfilesservice.loadfiles.infraestrutura.security.jwt.JwtTokenValidator
 import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.io.Decoders
 import io.jsonwebtoken.security.Keys
@@ -75,6 +76,53 @@ class JwtTokenValidatorSpec extends Specification {
         then:
         claims.getSubject() == "test@test.com"
         claims.get("rol") == "OPERARIO"
+    }
+
+    def "extractClaims - throws JwtException for a refresh token used as access token"() {
+        given:
+        def token = Jwts.builder()
+            .subject("test@test.com")
+            .claim("rol", "OPERARIO")
+            .claim("typ", "refresh")
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + 86400000L))
+            .signWith(secretKey)
+            .compact()
+
+        when:
+        validator.extractClaims(token)
+
+        then:
+        thrown(JwtException)
+    }
+
+    def "extractClaims - accepts a token with typ=access"() {
+        given:
+        def token = Jwts.builder()
+            .subject("test@test.com")
+            .claim("rol", "OPERARIO")
+            .claim("typ", "access")
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + 86400000L))
+            .signWith(secretKey)
+            .compact()
+
+        when:
+        def claims = validator.extractClaims(token)
+
+        then:
+        claims.getSubject() == "test@test.com"
+    }
+
+    def "extractClaims - accepts a legacy token without the typ claim (backward compatibility)"() {
+        given:
+        def token = buildToken("test@test.com", "OPERARIO", 86400000L)
+
+        when:
+        def claims = validator.extractClaims(token)
+
+        then:
+        claims.getSubject() == "test@test.com"
     }
 
     def "validateToken - does not throw for valid token"() {
